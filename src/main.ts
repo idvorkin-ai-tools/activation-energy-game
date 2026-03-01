@@ -1,4 +1,5 @@
 import { Application } from "pixi.js";
+import { Game } from "./Game";
 import "./style.css";
 
 async function init() {
@@ -12,8 +13,8 @@ async function init() {
   const container = document.getElementById("game")!;
   container.appendChild(app.canvas);
 
-  // Game will be initialized here once engine is ready
-  console.log("Activation Energy: The Game — canvas ready");
+  const game = new Game(app);
+  game.start();
 }
 
 init();
