@@ -4,6 +4,11 @@ import { WillpowerBar } from "./engine/WillpowerBar";
 import { Ch0_Morning } from "./chapters/Ch0_Morning";
 import { Ch1_Starting } from "./chapters/Ch1_Starting";
 import { Ch2_Stopping } from "./chapters/Ch2_Stopping";
+import { Ch3_Day } from "./chapters/Ch3_Day";
+import { Ch4_Fibers } from "./chapters/Ch4_Fibers";
+import { Ch5_DeathSpiral } from "./chapters/Ch5_DeathSpiral";
+import { Ch6_Levers } from "./chapters/Ch6_Levers";
+import { Ch7_Sandbox } from "./chapters/Ch7_Sandbox";
 
 export class Game {
   app: Application;
@@ -36,6 +41,11 @@ export class Game {
       () => new Ch0_Morning(this.app, this),
       () => new Ch1_Starting(this.app, this),
       () => new Ch2_Stopping(this.app, this),
+      () => new Ch3_Day(this.app, this),
+      () => new Ch4_Fibers(this.app, this),
+      () => new Ch5_DeathSpiral(this.app, this),
+      () => new Ch6_Levers(this.app, this),
+      () => new Ch7_Sandbox(this.app, this),
     ];
 
     const loadChapter = (index: number) => {
