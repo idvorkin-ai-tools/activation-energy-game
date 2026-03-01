@@ -20,14 +20,12 @@ export class SceneManager {
       this.currentScene.destroy();
     }
 
-    // Set up new scene
+    // Set up new scene: fade in first, then let enter() run its sequence
     this.currentScene = scene;
     scene.container.alpha = 0;
     this.app.stage.addChild(scene.container);
-    await scene.enter();
-
-    // Fade in new scene
     await this.fadeIn(scene);
+    await scene.enter();
   }
 
   private fadeOut(scene: Scene): Promise<void> {

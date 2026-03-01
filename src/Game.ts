@@ -1,4 +1,5 @@
 import { Application } from "pixi.js";
+import { update as updateTweens } from "@tweenjs/tween.js";
 import { SceneManager } from "./engine/SceneManager";
 import { WillpowerBar } from "./engine/WillpowerBar";
 import { Ch0_Morning } from "./chapters/Ch0_Morning";
@@ -29,8 +30,9 @@ export class Game {
     });
     app.stage.addChild(this.willpowerBar);
 
-    // Register ticker for tween updates
+    // Register ticker for tween updates (global + per-component groups)
     app.ticker.add(() => {
+      updateTweens();
       this.sceneManager.update();
       this.willpowerBar.update();
     });

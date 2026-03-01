@@ -1,5 +1,4 @@
 import { Container, Graphics } from "pixi.js";
-import { Tween } from "@tweenjs/tween.js";
 import { ExpressionName, EXPRESSIONS } from "./expressions";
 
 /**
@@ -104,15 +103,24 @@ export class Character {
   /** Animate walking to a position. Returns a promise that resolves on arrival. */
   walkTo(x: number, y: number, durationMs: number = 1000): Promise<void> {
     return new Promise((resolve) => {
-      const pos = { x: this.container.x, y: this.container.y };
-      new Tween(pos)
-        .to({ x, y }, durationMs)
-        .onUpdate(() => {
-          this.container.x = pos.x;
-          this.container.y = pos.y;
-        })
-        .onComplete(() => resolve())
-        .start();
+      const startX = this.container.x;
+      const startY = this.container.y;
+      const startTime = performance.now();
+
+      const animate = () => {
+        const elapsed = performance.now() - startTime;
+        const t = Math.min(elapsed / durationMs, 1);
+        // Ease out cubic
+        const ease = 1 - Math.pow(1 - t, 3);
+        this.container.x = startX + (x - startX) * ease;
+        this.container.y = startY + (y - startY) * ease;
+        if (t < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          resolve();
+        }
+      };
+      requestAnimationFrame(animate);
     });
   }
 
