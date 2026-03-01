@@ -1,6 +1,9 @@
 import { Application } from "pixi.js";
 import { SceneManager } from "./engine/SceneManager";
 import { WillpowerBar } from "./engine/WillpowerBar";
+import { Ch0_Morning } from "./chapters/Ch0_Morning";
+import { Ch1_Starting } from "./chapters/Ch1_Starting";
+import { Ch2_Stopping } from "./chapters/Ch2_Stopping";
 
 export class Game {
   app: Application;
@@ -29,6 +32,21 @@ export class Game {
   }
 
   start(): void {
-    console.log("Activation Energy: Game engine ready — awaiting chapters");
+    const chapters = [
+      () => new Ch0_Morning(this.app, this),
+      () => new Ch1_Starting(this.app, this),
+      () => new Ch2_Stopping(this.app, this),
+    ];
+
+    const loadChapter = (index: number) => {
+      if (index >= chapters.length) return;
+      const chapter = chapters[index]();
+      chapter.onComplete = () => {
+        loadChapter(index + 1);
+      };
+      this.sceneManager.goTo(chapter);
+    };
+
+    loadChapter(0);
   }
 }
