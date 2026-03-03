@@ -1,5 +1,3 @@
-import { Container, Text, TextStyle } from "pixi.js";
-
 export interface TextBoxOptions {
   text: string;
   x: number;
@@ -9,39 +7,34 @@ export interface TextBoxOptions {
   color?: string;
 }
 
-export class TextBox extends Container {
+export class TextBox {
+  el: HTMLDivElement;
   private fullText: string;
-  private textDisplay: Text;
   private charsPerSecond = 30;
 
   constructor(options: TextBoxOptions) {
-    super();
-
     this.fullText = options.text;
-    this.x = options.x;
-    this.y = options.y;
 
-    const style = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: options.fontSize ?? 22,
-      fill: options.color ?? "#e0e0e0",
-      wordWrap: true,
-      wordWrapWidth: options.maxWidth,
-      lineHeight: (options.fontSize ?? 22) * 1.4,
-    });
-
-    this.textDisplay = new Text({ text: "", style });
-    this.addChild(this.textDisplay);
+    this.el = document.createElement("div");
+    this.el.className = "text-box";
+    this.el.style.left = `${options.x}px`;
+    this.el.style.top = `${options.y}px`;
+    this.el.style.maxWidth = `${options.maxWidth}px`;
+    this.el.style.fontSize = `${options.fontSize ?? 22}px`;
+    this.el.style.lineHeight = `${(options.fontSize ?? 22) * 1.4}px`;
+    if (options.color) {
+      this.el.style.color = options.color;
+    }
   }
 
-  /** Typewriter effect — adds one character at a time at 30 chars/sec. */
   show(): Promise<void> {
     return new Promise((resolve) => {
       let charIndex = 0;
+      this.el.textContent = "";
       const intervalMs = 1000 / this.charsPerSecond;
       const timer = setInterval(() => {
         charIndex++;
-        this.textDisplay.text = this.fullText.slice(0, charIndex);
+        this.el.textContent = this.fullText.slice(0, charIndex);
         if (charIndex >= this.fullText.length) {
           clearInterval(timer);
           resolve();
@@ -50,19 +43,20 @@ export class TextBox extends Container {
     });
   }
 
-  /** Show all text immediately. */
   showInstant(): void {
-    this.textDisplay.text = this.fullText;
+    this.el.textContent = this.fullText;
   }
 
-  /** Hide the text box. */
   hide(): void {
-    this.alpha = 0;
+    this.el.style.opacity = "0";
   }
 
-  /** Update the text content. */
   setText(text: string): void {
     this.fullText = text;
-    this.textDisplay.text = text;
+    this.el.textContent = text;
+  }
+
+  set y(val: number) {
+    this.el.style.top = `${val}px`;
   }
 }

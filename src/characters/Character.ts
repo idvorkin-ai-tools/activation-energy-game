@@ -1,119 +1,117 @@
-import { Container, Graphics } from "pixi.js";
 import { ExpressionName, EXPRESSIONS } from "./expressions";
+import { hexToCSS } from "../utils/dom";
+
+const CANVAS_W = 60;
+const CANVAS_H = 80;
+const BODY_RADIUS = 25;
+const HEAD_RADIUS = 18;
 
 /**
- * A simple round character drawn entirely with PIXI Graphics.
- * Inspired by Nicky Case's explorable explanations style —
- * pill-shaped body with expressive face.
- *
- * Roughly 60px wide, 80px tall. Origin at center of body.
+ * A simple round character drawn on an HTML canvas.
+ * Pill-shaped body with expressive face, ~60x80px. Origin at center.
+ * The el is positioned so (left, top) corresponds to the character center.
  */
 export class Character {
-  container: Container;
-  private body: Graphics;
-  private leftEye: Graphics;
-  private rightEye: Graphics;
-  private mouth: Graphics;
-  private leftBrow: Graphics;
-  private rightBrow: Graphics;
+  el: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
   private currentExpression: ExpressionName = "neutral";
-
-  private readonly BODY_RADIUS = 25;
-  private readonly HEAD_RADIUS = 18;
+  private posX = 0;
+  private posY = 0;
 
   constructor() {
-    this.container = new Container();
-
-    this.body = new Graphics();
-    this.leftEye = new Graphics();
-    this.rightEye = new Graphics();
-    this.mouth = new Graphics();
-    this.leftBrow = new Graphics();
-    this.rightBrow = new Graphics();
-
-    this.container.addChild(
-      this.body,
-      this.leftEye,
-      this.rightEye,
-      this.mouth,
-      this.leftBrow,
-      this.rightBrow,
-    );
-
+    this.el = document.createElement("canvas");
+    this.el.width = CANVAS_W;
+    this.el.height = CANVAS_H;
+    this.el.style.position = "absolute";
+    this.el.style.pointerEvents = "none";
+    this.ctx = this.el.getContext("2d")!;
     this.draw("neutral");
   }
 
-  /** Redraw the character with the given expression */
   private draw(expression: ExpressionName): void {
+    const ctx = this.ctx;
     const params = EXPRESSIONS[expression];
+    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // --- Body: pill shape (large circle) + head (smaller circle on top) ---
-    this.body.clear();
-    this.body.circle(0, 20, this.BODY_RADIUS).fill(params.bodyTint);
-    this.body.circle(0, -15, this.HEAD_RADIUS).fill(params.bodyTint);
+    // Origin offset: character center is at (30, 35) on canvas
+    const cx = CANVAS_W / 2;
+    const bodyOffsetY = 55; // body center Y on canvas
+    const headOffsetY = 20; // head center Y on canvas
 
-    // --- Eyes: two small circles on the head ---
-    const eyeY = -18;
+    // Body circle
+    ctx.fillStyle = hexToCSS(params.bodyTint);
+    ctx.beginPath();
+    ctx.arc(cx, bodyOffsetY, BODY_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head circle
+    ctx.beginPath();
+    ctx.arc(cx, headOffsetY, HEAD_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    const eyeY = headOffsetY - 3;
     const eyeSpacing = 8;
     const eyeRadius = 3 * params.eyeScale;
+    ctx.fillStyle = "#1a1a2e";
 
-    this.leftEye.clear();
-    this.leftEye.circle(-eyeSpacing, eyeY, eyeRadius).fill(0x1a1a2e);
+    ctx.beginPath();
+    ctx.arc(cx - eyeSpacing, eyeY, eyeRadius, 0, Math.PI * 2);
+    ctx.fill();
 
-    this.rightEye.clear();
-    this.rightEye.circle(eyeSpacing, eyeY, eyeRadius).fill(0x1a1a2e);
+    ctx.beginPath();
+    ctx.arc(cx + eyeSpacing, eyeY, eyeRadius, 0, Math.PI * 2);
+    ctx.fill();
 
-    // --- Mouth: quadratic bezier curve ---
-    // Control point y shifts up for smile (negative mouthCurve * -8 = positive offset)
-    // and down for frown
-    this.mouth.clear();
-    this.mouth.moveTo(-6, -8);
-    const cpY = -8 + params.mouthCurve * -8;
-    this.mouth.quadraticCurveTo(0, cpY, 6, -8);
-    this.mouth.stroke({ width: 2, color: 0x1a1a2e });
+    // Mouth
+    const mouthY = headOffsetY + 7;
+    const cpY = mouthY + params.mouthCurve * -8;
+    ctx.strokeStyle = "#1a1a2e";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - 6, mouthY);
+    ctx.quadraticCurveTo(cx, cpY, cx + 6, mouthY);
+    ctx.stroke();
 
-    // --- Eyebrows: small angled lines above each eye ---
+    // Eyebrows
     const browY = eyeY - 6 + params.browOffset;
     const browAngle = params.browOffset * 0.3;
+    ctx.lineWidth = 1.5;
 
-    this.leftBrow.clear();
-    this.leftBrow
-      .moveTo(-eyeSpacing - 3, browY)
-      .lineTo(-eyeSpacing + 3, browY - browAngle);
-    this.leftBrow.stroke({ width: 1.5, color: 0x1a1a2e });
+    ctx.beginPath();
+    ctx.moveTo(cx - eyeSpacing - 3, browY);
+    ctx.lineTo(cx - eyeSpacing + 3, browY - browAngle);
+    ctx.stroke();
 
-    this.rightBrow.clear();
-    this.rightBrow
-      .moveTo(eyeSpacing - 3, browY - browAngle)
-      .lineTo(eyeSpacing + 3, browY);
-    this.rightBrow.stroke({ width: 1.5, color: 0x1a1a2e });
+    ctx.beginPath();
+    ctx.moveTo(cx + eyeSpacing - 3, browY - browAngle);
+    ctx.lineTo(cx + eyeSpacing + 3, browY);
+    ctx.stroke();
   }
 
-  /** Change expression (redraws immediately) */
   setExpression(expression: ExpressionName): void {
     this.currentExpression = expression;
     this.draw(expression);
   }
 
-  /** Get current expression name */
   getExpression(): ExpressionName {
     return this.currentExpression;
   }
 
-  /** Animate walking to a position. Returns a promise that resolves on arrival. */
   walkTo(x: number, y: number, durationMs: number = 1000): Promise<void> {
     return new Promise((resolve) => {
-      const startX = this.container.x;
-      const startY = this.container.y;
+      const startX = this.posX;
+      const startY = this.posY;
       const startTime = performance.now();
 
       const animate = () => {
         const elapsed = performance.now() - startTime;
         const t = Math.min(elapsed / durationMs, 1);
-        // Ease out cubic
         const ease = 1 - Math.pow(1 - t, 3);
-        this.container.x = startX + (x - startX) * ease;
-        this.container.y = startY + (y - startY) * ease;
+        this.setPosition(
+          startX + (x - startX) * ease,
+          startY + (y - startY) * ease,
+        );
         if (t < 1) {
           requestAnimationFrame(animate);
         } else {
@@ -124,13 +122,18 @@ export class Character {
     });
   }
 
-  /** Set position directly (no animation) */
   setPosition(x: number, y: number): void {
-    this.container.x = x;
-    this.container.y = y;
+    this.posX = x;
+    this.posY = y;
+    // Position so the center of the character is at (x, y)
+    this.el.style.left = `${x - CANVAS_W / 2}px`;
+    this.el.style.top = `${y - CANVAS_H / 2}px`;
   }
 
-  /** Map a willpower percentage (0-100) to an appropriate expression */
+  getPosition(): { x: number; y: number } {
+    return { x: this.posX, y: this.posY };
+  }
+
   static expressionForWillpower(percent: number): ExpressionName {
     if (percent > 80) return "energized";
     if (percent > 60) return "happy";

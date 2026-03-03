@@ -1,4 +1,3 @@
-import { Application, Container, Graphics, Text, TextStyle, FederatedPointerEvent } from "pixi.js";
 import { Scene } from "../engine/Scene";
 import { TextBox } from "../engine/TextBox";
 
@@ -12,186 +11,99 @@ import type { Game } from "../Game";
 // ─── Fiber Slider Helper ────────────────────────────────────────
 
 interface FiberSliderOptions {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
   label: string;
   color: string;
   initialValue: number;
+  height: number;
   onChange: (value: number) => void;
 }
 
-class FiberSlider extends Container {
-  private knob: Graphics;
-  private valueText: Text;
-  private sliderValue: number;
-  private trackHeight: number;
-  private trackX: number;
+class FiberSlider {
+  el: HTMLDivElement;
+  private slider: HTMLInputElement;
+  private valueLabel: HTMLDivElement;
   private onChange: (value: number) => void;
 
   constructor(options: FiberSliderOptions) {
-    super();
-    this.x = options.x;
-    this.y = options.y;
-    this.sliderValue = options.initialValue;
     this.onChange = options.onChange;
 
-    const trackWidth = 10;
-    this.trackHeight = options.height - 40;
-    this.trackX = options.width / 2;
+    this.el = document.createElement("div");
+    this.el.style.display = "flex";
+    this.el.style.flexDirection = "column";
+    this.el.style.alignItems = "center";
+    this.el.style.gap = "4px";
 
     // Label at top
-    const label = new Text({
-      text: options.label.slice(0, 4).toUpperCase(),
-      style: new TextStyle({
-        fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 10,
-        fill: options.color,
-        fontWeight: "bold",
-      }),
+    const label = document.createElement("div");
+    label.style.fontSize = "10px";
+    label.style.fontWeight = "bold";
+    label.style.color = options.color;
+    label.textContent = options.label.slice(0, 4).toUpperCase();
+    this.el.appendChild(label);
+
+    // Vertical range slider
+    this.slider = document.createElement("input");
+    this.slider.type = "range";
+    this.slider.min = "0";
+    this.slider.max = "20";
+    this.slider.value = String(options.initialValue);
+    this.slider.style.writingMode = "vertical-lr";
+    this.slider.style.direction = "rtl";
+    this.slider.style.height = `${options.height}px`;
+    this.slider.style.width = "20px";
+    this.slider.style.accentColor = options.color;
+    this.slider.style.cursor = "ns-resize";
+    this.slider.addEventListener("input", () => {
+      const val = parseInt(this.slider.value, 10);
+      this.valueLabel.textContent = String(val);
+      this.onChange(val);
     });
-    label.anchor.set(0.5, 0);
-    label.x = this.trackX;
-    label.y = 0;
-    this.addChild(label);
-
-    // Track background
-    const track = new Graphics();
-    track
-      .roundRect(this.trackX - trackWidth / 2, 18, trackWidth, this.trackHeight, 4)
-      .fill(0x374151);
-    this.addChild(track);
-
-    // Filled portion
-    const fill = new Graphics();
-    this.addChild(fill);
-
-    // Knob
-    this.knob = new Graphics();
-    this.knob.circle(0, 0, 8).fill(options.color);
-    this.knob.x = this.trackX;
-    this.updateKnobY();
-    this.addChild(this.knob);
+    this.el.appendChild(this.slider);
 
     // Value text at bottom
-    this.valueText = new Text({
-      text: `${this.sliderValue}`,
-      style: new TextStyle({
-        fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 11,
-        fill: "#e0e0e0",
-      }),
-    });
-    this.valueText.anchor.set(0.5, 0);
-    this.valueText.x = this.trackX;
-    this.valueText.y = this.trackHeight + 22;
-    this.addChild(this.valueText);
-
-    // Interaction
-    this.knob.eventMode = "static";
-    this.knob.cursor = "ns-resize";
-    let dragging = false;
-
-    this.knob.on("pointerdown", () => {
-      dragging = true;
-    });
-    this.knob.on("globalpointermove", (e: FederatedPointerEvent) => {
-      if (!dragging) return;
-      const local = this.toLocal(e.global);
-      const trackTop = 18;
-      const trackBottom = 18 + this.trackHeight;
-      const clamped = Math.max(trackTop, Math.min(local.y, trackBottom));
-      // Invert: top = max, bottom = min
-      const ratio = 1 - (clamped - trackTop) / (trackBottom - trackTop);
-      this.sliderValue = Math.round(ratio * 20);
-      this.knob.y = clamped;
-      this.valueText.text = `${this.sliderValue}`;
-      this.onChange(this.sliderValue);
-    });
-    this.knob.on("pointerup", () => {
-      dragging = false;
-    });
-    this.knob.on("pointerupoutside", () => {
-      dragging = false;
-    });
+    this.valueLabel = document.createElement("div");
+    this.valueLabel.style.fontSize = "11px";
+    this.valueLabel.style.color = "#e0e0e0";
+    this.valueLabel.textContent = String(options.initialValue);
+    this.el.appendChild(this.valueLabel);
   }
 
   getValue(): number {
-    return this.sliderValue;
-  }
-
-  private updateKnobY(): void {
-    const trackTop = 18;
-    const ratio = 1 - this.sliderValue / 20;
-    this.knob.y = trackTop + ratio * this.trackHeight;
+    return parseInt(this.slider.value, 10);
   }
 }
 
 // ─── Toggle Button Helper ────────────────────────────────────────
 
-class ToggleButton extends Container {
-  private bg: Graphics;
-  private labelText: Text;
+class ToggleButton {
+  el: HTMLButtonElement;
   private isOn = false;
   private onToggle: (isOn: boolean) => void;
-  private btnWidth: number;
-  private btnHeight: number;
 
-  constructor(
-    text: string,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    onToggle: (isOn: boolean) => void,
-  ) {
-    super();
-    this.x = x;
-    this.y = y;
-    this.btnWidth = width;
-    this.btnHeight = height;
+  constructor(text: string, onToggle: (isOn: boolean) => void) {
     this.onToggle = onToggle;
 
-    this.bg = new Graphics();
-    this.drawBg();
-    this.addChild(this.bg);
-
-    this.labelText = new Text({
-      text,
-      style: new TextStyle({
-        fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 12,
-        fill: "#ffffff",
-        fontWeight: "bold",
-      }),
-    });
-    this.labelText.anchor.set(0.5);
-    this.labelText.x = this.btnWidth / 2;
-    this.labelText.y = this.btnHeight / 2;
-    this.addChild(this.labelText);
-
-    this.eventMode = "static";
-    this.cursor = "pointer";
-    this.hitArea = {
-      contains: (px: number, py: number) =>
-        px >= 0 && px <= this.btnWidth && py >= 0 && py <= this.btnHeight,
-    };
-    this.on("pointerdown", () => {
+    this.el = document.createElement("button");
+    this.el.className = "game-btn";
+    this.el.textContent = text;
+    this.el.style.width = "100%";
+    this.el.style.height = "32px";
+    this.el.style.fontSize = "12px";
+    this.el.style.background = "#4b5563";
+    this.el.style.border = "none";
+    this.el.style.borderRadius = "6px";
+    this.el.style.color = "#ffffff";
+    this.el.style.fontWeight = "bold";
+    this.el.style.cursor = "pointer";
+    this.el.addEventListener("click", () => {
       this.isOn = !this.isOn;
-      this.drawBg();
+      this.el.style.background = this.isOn ? "#22c55e" : "#4b5563";
       this.onToggle(this.isOn);
     });
   }
 
   getIsOn(): boolean {
     return this.isOn;
-  }
-
-  private drawBg(): void {
-    this.bg.clear();
-    const color = this.isOn ? 0x22c55e : 0x4b5563;
-    this.bg.roundRect(0, 0, this.btnWidth, this.btnHeight, 6).fill(color);
   }
 }
 
@@ -200,11 +112,10 @@ class ToggleButton extends Container {
 // ═══════════════════════════════════════════════════════════════════
 
 export class Ch7_Sandbox extends Scene {
-  onComplete: (() => void) | null = null;
   private game: Game;
 
-  constructor(app: Application, game: Game) {
-    super(app);
+  constructor(game: Game) {
+    super();
     this.game = game;
   }
 
@@ -223,7 +134,7 @@ export class Ch7_Sandbox extends Scene {
       maxWidth: textMaxW,
       fontSize: 24,
     });
-    this.container.addChild(text1);
+    this.el.appendChild(text1.el);
     await text1.show();
 
     await this.delay(800);
@@ -236,7 +147,7 @@ export class Ch7_Sandbox extends Scene {
       fontSize: 16,
       color: "#9ca3af",
     });
-    this.container.addChild(bullets);
+    this.el.appendChild(bullets.el);
     await bullets.show();
 
     await this.delay(2000);
@@ -260,7 +171,6 @@ export class Ch7_Sandbox extends Scene {
     let controlX: number, controlY: number, controlW: number, controlH: number;
 
     if (isNarrow) {
-      // Stacked: timeline on top, controls below
       timelineX = 10;
       timelineY = 50;
       timelineW = w - 20;
@@ -270,7 +180,6 @@ export class Ch7_Sandbox extends Scene {
       controlW = w - 20;
       controlH = h * 0.40;
     } else {
-      // Side by side: left 60% for timeline, right 40% for controls
       const leftWidth = Math.floor(w * 0.6);
       const rightX = leftWidth + 10;
       const rightWidth = w - rightX - 10;
@@ -294,140 +203,98 @@ export class Ch7_Sandbox extends Scene {
       activities: ACTIVITIES,
       willpowerBar: this.game.willpowerBar,
     });
-    this.container.addChild(timeline);
+    this.el.appendChild(timeline.el);
 
     // ─── Right/Bottom Panel: Controls ────────────────────────
 
-    const controlPanel = new Container();
-    controlPanel.x = controlX;
-    controlPanel.y = controlY;
-    this.container.addChild(controlPanel);
-
-    // Panel background
-    const panelBg = new Graphics();
-    panelBg
-      .roundRect(0, 0, controlW, controlH, 8)
-      .fill({ color: 0x1e293b, alpha: 0.6 });
-    controlPanel.addChild(panelBg);
-
-    const rightWidth = controlW;
+    const controlPanel = document.createElement("div");
+    controlPanel.style.position = "absolute";
+    controlPanel.style.left = `${controlX}px`;
+    controlPanel.style.top = `${controlY}px`;
+    controlPanel.style.width = `${controlW}px`;
+    controlPanel.style.height = `${controlH}px`;
+    controlPanel.style.background = "rgba(30, 41, 59, 0.6)";
+    controlPanel.style.borderRadius = "8px";
+    controlPanel.style.padding = "10px";
+    controlPanel.style.boxSizing = "border-box";
+    this.el.appendChild(controlPanel);
 
     // ── Fiber Sliders ──────────────────────────────────────
 
-    const fiberLabel = new Text({
-      text: "Fiber Levels",
-      style: new TextStyle({
-        fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 14,
-        fill: "#e0e0e0",
-        fontWeight: "bold",
-      }),
-    });
-    fiberLabel.x = 10;
-    fiberLabel.y = 8;
-    controlPanel.addChild(fiberLabel);
+    const fiberLabel = document.createElement("div");
+    fiberLabel.style.fontSize = "14px";
+    fiberLabel.style.fontWeight = "bold";
+    fiberLabel.style.color = "#e0e0e0";
+    fiberLabel.style.marginBottom = "4px";
+    fiberLabel.textContent = "Fiber Levels";
+    controlPanel.appendChild(fiberLabel);
 
     const fiberState: FiberState = FiberModel.defaultFibers();
-    const sliderSpacing = Math.min(50, (rightWidth - 20) / FIBER_KEYS.length);
-    const sliderStartX = 10;
-    const sliderHeight = Math.min(160, h * 0.25);
-    const fiberSliders: FiberSlider[] = [];
+    const sliderHeight = Math.min(120, h * 0.2);
+
+    const slidersRow = document.createElement("div");
+    slidersRow.style.display = "flex";
+    slidersRow.style.justifyContent = "space-around";
+    slidersRow.style.marginBottom = "12px";
+    controlPanel.appendChild(slidersRow);
 
     for (let i = 0; i < FIBER_KEYS.length; i++) {
       const key = FIBER_KEYS[i];
       const slider = new FiberSlider({
-        x: sliderStartX + i * sliderSpacing,
-        y: 28,
-        width: sliderSpacing,
-        height: sliderHeight,
         label: key,
         color: FIBER_COLORS[key],
         initialValue: fiberState[key],
+        height: sliderHeight,
         onChange: (val: number) => {
           fiberState[key] = val;
           updateTotalDisplay();
         },
       });
-      controlPanel.addChild(slider);
-      fiberSliders.push(slider);
+      slidersRow.appendChild(slider.el);
     }
 
     // ── Lever Toggles ──────────────────────────────────────
 
-    const toggleY = sliderHeight + 50;
-    const toggleW = rightWidth - 20;
-    const toggleH = 32;
+    const togglesContainer = document.createElement("div");
+    togglesContainer.style.display = "flex";
+    togglesContainer.style.flexDirection = "column";
+    togglesContainer.style.gap = "6px";
+    togglesContainer.style.marginBottom = "12px";
+    controlPanel.appendChild(togglesContainer);
 
     let morningHabitsOn = false;
-    let _schedulesOn = false;
     let highPeersOn = false;
 
-    const morningToggle = new ToggleButton(
-      "Morning Habits",
-      10,
-      toggleY,
-      toggleW,
-      toggleH,
-      (on) => {
-        morningHabitsOn = on;
-        updateTotalDisplay();
-      },
-    );
-    controlPanel.addChild(morningToggle);
+    const morningToggle = new ToggleButton("Morning Habits", (on) => {
+      morningHabitsOn = on;
+      updateTotalDisplay();
+    });
+    togglesContainer.appendChild(morningToggle.el);
 
-    const schedulesToggle = new ToggleButton(
-      "Schedules",
-      10,
-      toggleY + toggleH + 6,
-      toggleW,
-      toggleH,
-      (on) => {
-        _schedulesOn = on;
-        updateTotalDisplay();
-      },
-    );
-    controlPanel.addChild(schedulesToggle);
+    const schedulesToggle = new ToggleButton("Schedules", (_on) => {
+      updateTotalDisplay();
+    });
+    togglesContainer.appendChild(schedulesToggle.el);
 
-    const peersToggle = new ToggleButton(
-      "High Peers",
-      10,
-      toggleY + (toggleH + 6) * 2,
-      toggleW,
-      toggleH,
-      (on) => {
-        highPeersOn = on;
-        updateTotalDisplay();
-      },
-    );
-    controlPanel.addChild(peersToggle);
+    const peersToggle = new ToggleButton("High Peers", (on) => {
+      highPeersOn = on;
+      updateTotalDisplay();
+    });
+    togglesContainer.appendChild(peersToggle.el);
 
     // ── Willpower Summary ──────────────────────────────────
 
-    const summaryY = toggleY + (toggleH + 6) * 3 + 10;
-    const totalDisplay = new Text({
-      text: "",
-      style: new TextStyle({
-        fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 18,
-        fill: "#4ade80",
-        fontWeight: "bold",
-      }),
-    });
-    totalDisplay.x = 10;
-    totalDisplay.y = summaryY;
-    controlPanel.addChild(totalDisplay);
+    const totalDisplay = document.createElement("div");
+    totalDisplay.style.fontSize = "18px";
+    totalDisplay.style.fontWeight = "bold";
+    totalDisplay.style.color = "#4ade80";
+    controlPanel.appendChild(totalDisplay);
 
-    const breakdownDisplay = new Text({
-      text: "",
-      style: new TextStyle({
-        fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 12,
-        fill: "#9ca3af",
-      }),
-    });
-    breakdownDisplay.x = 10;
-    breakdownDisplay.y = summaryY + 26;
-    controlPanel.addChild(breakdownDisplay);
+    const breakdownDisplay = document.createElement("div");
+    breakdownDisplay.style.fontSize = "12px";
+    breakdownDisplay.style.color = "#9ca3af";
+    breakdownDisplay.style.marginTop = "4px";
+    controlPanel.appendChild(breakdownDisplay);
 
     const updateTotalDisplay = () => {
       const base = FiberModel.totalWillpower(fiberState);
@@ -444,8 +311,8 @@ export class Ch7_Sandbox extends Scene {
       }
 
       const total = base + bonus;
-      totalDisplay.text = `Total: ${total}`;
-      breakdownDisplay.text = parts.length > 0
+      totalDisplay.textContent = `Total: ${total}`;
+      breakdownDisplay.textContent = parts.length > 0
         ? `Base: ${base} ${parts.join(" ")}`
         : `Base: ${base}`;
 
@@ -467,7 +334,6 @@ export class Ch7_Sandbox extends Scene {
 
     let closingShown = false;
 
-    // Show closing text either after first play or after timeout
     const showClosing = async () => {
       if (closingShown) return;
       closingShown = true;
@@ -480,7 +346,7 @@ export class Ch7_Sandbox extends Scene {
         y: h * 0.7 + 10,
         maxWidth: textMaxW,
       });
-      this.container.addChild(closing1);
+      this.el.appendChild(closing1.el);
       await closing1.show();
 
       await this.delay(1200);
@@ -491,7 +357,7 @@ export class Ch7_Sandbox extends Scene {
         y: h * 0.7 + 50,
         maxWidth: textMaxW,
       });
-      this.container.addChild(closing2);
+      this.el.appendChild(closing2.el);
       await closing2.show();
 
       await this.delay(1200);
@@ -502,7 +368,7 @@ export class Ch7_Sandbox extends Scene {
         y: h * 0.7 + 100,
         maxWidth: textMaxW,
       });
-      this.container.addChild(closing3);
+      this.el.appendChild(closing3.el);
       await closing3.show();
 
       await this.delay(1000);
@@ -515,41 +381,34 @@ export class Ch7_Sandbox extends Scene {
         fontSize: 24,
         color: "#3b82f6",
       });
-      this.container.addChild(closing4);
+      this.el.appendChild(closing4.el);
       await closing4.show();
 
       // Credits
-      const credits = new Text({
-        text: "Based on Igor's Activation Energy model \u2022 Built with Claude",
-        style: new TextStyle({
-          fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-          fontSize: 13,
-          fill: "#6b7280",
-          fontStyle: "italic",
-        }),
-      });
-      credits.anchor.set(0.5, 0);
-      credits.x = w / 2;
-      credits.y = h - 55;
-      this.container.addChild(credits);
+      const credits = document.createElement("div");
+      credits.style.position = "absolute";
+      credits.style.left = "50%";
+      credits.style.transform = "translateX(-50%)";
+      credits.style.bottom = "55px";
+      credits.style.fontSize = "13px";
+      credits.style.color = "#6b7280";
+      credits.style.fontStyle = "italic";
+      credits.textContent = "Based on Igor's Activation Energy model \u2022 Built with Claude";
+      this.el.appendChild(credits);
 
-      const link = new Text({
-        text: "Read more at idvork.in/activation",
-        style: new TextStyle({
-          fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-          fontSize: 13,
-          fill: "#3b82f6",
-        }),
-      });
-      link.anchor.set(0.5, 0);
-      link.x = w / 2;
-      link.y = h - 35;
-      link.eventMode = "static";
-      link.cursor = "pointer";
-      link.on("pointerdown", () => {
-        window.open("https://idvork.in/activation", "_blank");
-      });
-      this.container.addChild(link);
+      const link = document.createElement("a");
+      link.href = "https://idvork.in/activation";
+      link.target = "_blank";
+      link.style.position = "absolute";
+      link.style.left = "50%";
+      link.style.transform = "translateX(-50%)";
+      link.style.bottom = "35px";
+      link.style.fontSize = "13px";
+      link.style.color = "#3b82f6";
+      link.style.textDecoration = "none";
+      link.style.cursor = "pointer";
+      link.textContent = "Read more at idvork.in/activation";
+      this.el.appendChild(link);
     };
 
     // Race: first play completes or 30s timeout
@@ -561,9 +420,7 @@ export class Ch7_Sandbox extends Scene {
     Promise.race([playPromise, timeoutPromise]).then(() => showClosing());
   }
 
-  async exit(): Promise<void> {
-    // Cleanup handled by Scene.destroy()
-  }
+  async exit(): Promise<void> {}
 
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

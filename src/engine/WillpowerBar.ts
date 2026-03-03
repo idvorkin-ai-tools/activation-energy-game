@@ -1,4 +1,3 @@
-import { Container, Graphics, Text, TextStyle } from "pixi.js";
 import { Tween, Group } from "@tweenjs/tween.js";
 
 export interface WillpowerBarOptions {
@@ -14,10 +13,11 @@ export interface FiberSegment {
   value: number;
 }
 
-export class WillpowerBar extends Container {
-  private barBg: Graphics;
-  private barFill: Graphics;
-  private valueLabel: Text;
+export class WillpowerBar {
+  el: HTMLDivElement;
+  private trackEl: HTMLDivElement;
+  private fillEl: HTMLDivElement;
+  private labelEl: HTMLDivElement;
   private tweenGroup: Group;
   private barWidth: number;
   private barHeight: number;
@@ -28,64 +28,67 @@ export class WillpowerBar extends Container {
   private fibers: FiberSegment[] = [];
 
   constructor(options: WillpowerBarOptions) {
-    super();
-
-    this.x = options.x;
-    this.y = options.y;
     this.barWidth = options.width;
     this.barHeight = options.height;
     this.displayWidth = this.barWidth;
     this.tweenGroup = new Group();
 
-    // Background track
-    this.barBg = new Graphics();
-    this.barBg.roundRect(0, 0, this.barWidth, this.barHeight, 4).fill(0x374151);
-    this.addChild(this.barBg);
+    this.el = document.createElement("div");
+    this.el.className = "willpower-bar";
+    this.el.style.left = `${options.x}px`;
+    this.el.style.top = `${options.y}px`;
+    this.el.style.width = `${options.width}px`;
 
-    // Fill bar
-    this.barFill = new Graphics();
-    this.drawFill();
-    this.addChild(this.barFill);
+    // Label above bar
+    this.labelEl = document.createElement("div");
+    this.labelEl.className = "willpower-bar__label";
+    this.labelEl.style.bottom = `${options.height + 4}px`;
+    this.labelEl.textContent = `${this.currentValue}/${this.maxValue}`;
+    this.el.appendChild(this.labelEl);
 
-    // Value label
-    const style = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 14,
-      fill: "#e0e0e0",
-      fontWeight: "bold",
-    });
-    this.valueLabel = new Text({ text: `${this.currentValue}/${this.maxValue}`, style });
-    this.valueLabel.anchor.set(0.5, 1);
-    this.valueLabel.x = this.barWidth / 2;
-    this.valueLabel.y = -4;
-    this.addChild(this.valueLabel);
+    // Track
+    this.trackEl = document.createElement("div");
+    this.trackEl.className = "willpower-bar__track";
+    this.trackEl.style.width = `${options.width}px`;
+    this.trackEl.style.height = `${options.height}px`;
+    this.el.appendChild(this.trackEl);
+
+    // Fill (single-color mode)
+    this.fillEl = document.createElement("div");
+    this.fillEl.className = "willpower-bar__fill";
+    this.fillEl.style.width = `${this.displayWidth}px`;
+    this.fillEl.style.background = this.getBarColor(1);
+    this.trackEl.appendChild(this.fillEl);
   }
 
-  private getBarColor(pct: number): number {
-    if (pct > 0.6) return 0x4ade80; // green
-    if (pct > 0.3) return 0xfacc15; // yellow
-    return 0xef4444; // red
+  private getBarColor(pct: number): string {
+    if (pct > 0.6) return "#4ade80";
+    if (pct > 0.3) return "#facc15";
+    return "#ef4444";
   }
 
   private drawFill(): void {
-    this.barFill.clear();
-
     if (this.fiberMode && this.fibers.length > 0) {
-      // Draw segmented fiber bar
-      let offsetX = 0;
+      // Create a linear-gradient from fiber segment colors
       const totalValue = this.fibers.reduce((sum, f) => sum + f.value, 0);
-      for (const fiber of this.fibers) {
-        const segWidth = totalValue > 0 ? (fiber.value / totalValue) * this.displayWidth : 0;
-        if (segWidth > 0) {
-          this.barFill.roundRect(offsetX, 0, segWidth, this.barHeight, 2).fill(fiber.color);
-          offsetX += segWidth;
-        }
+      if (totalValue <= 0) {
+        this.fillEl.style.width = "0px";
+        this.fillEl.style.background = "transparent";
+        return;
       }
+      const stops: string[] = [];
+      let pct = 0;
+      for (const fiber of this.fibers) {
+        const segPct = (fiber.value / totalValue) * 100;
+        stops.push(`${fiber.color} ${pct}% ${pct + segPct}%`);
+        pct += segPct;
+      }
+      this.fillEl.style.width = `${this.displayWidth}px`;
+      this.fillEl.style.background = `linear-gradient(to right, ${stops.join(", ")})`;
     } else {
-      // Single colored bar
       const pct = this.maxValue > 0 ? this.currentValue / this.maxValue : 0;
-      const color = this.getBarColor(pct);
-      this.barFill.roundRect(0, 0, this.displayWidth, this.barHeight, 4).fill(color);
+      this.fillEl.style.width = `${this.displayWidth}px`;
+      this.fillEl.style.background = this.getBarColor(pct);
     }
   }
 
@@ -102,33 +105,30 @@ export class WillpowerBar extends Container {
       .onUpdate(() => {
         this.displayWidth = obj.w;
         this.currentValue = Math.round(obj.v);
-        this.valueLabel.text = `${this.currentValue}/${this.maxValue}`;
+        this.labelEl.textContent = `${this.currentValue}/${this.maxValue}`;
         this.drawFill();
       })
       .onComplete(() => {
         this.currentValue = targetValue;
         this.displayWidth = targetWidth;
-        this.valueLabel.text = `${this.currentValue}/${this.maxValue}`;
+        this.labelEl.textContent = `${this.currentValue}/${this.maxValue}`;
         this.drawFill();
       });
     this.tweenGroup.add(tween);
     tween.start();
   }
 
-  /** Switch to fiber mode — splits the bar into colored segments for Chapter 4+. */
   setFiberMode(fibers: FiberSegment[]): void {
     this.fiberMode = true;
     this.fibers = fibers;
 
-    // Calculate display width from fiber totals relative to max
     const totalValue = fibers.reduce((sum, f) => sum + f.value, 0);
     this.displayWidth = this.maxValue > 0
       ? (totalValue / this.maxValue) * this.barWidth
       : 0;
 
-    // Update label to show total
     this.currentValue = totalValue;
-    this.valueLabel.text = `${Math.round(totalValue)}/${this.maxValue}`;
+    this.labelEl.textContent = `${Math.round(totalValue)}/${this.maxValue}`;
     this.drawFill();
   }
 

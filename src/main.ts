@@ -1,20 +1,10 @@
-import { Application } from "pixi.js";
 import { Game } from "./Game";
 import "./style.css";
 
-async function init() {
-  const container = document.getElementById("game")!;
+function init() {
+  const gameEl = document.getElementById("game")!;
 
-  const app = new Application();
-  await app.init({
-    background: "#1a1a2e",
-    resizeTo: container,
-    antialias: true,
-  });
-
-  container.appendChild(app.canvas);
-
-  const game = new Game(app);
+  const game = new Game(gameEl);
   game.start();
 
   // About modal

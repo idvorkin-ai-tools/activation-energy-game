@@ -1,5 +1,3 @@
-import { Container, Graphics, Text, TextStyle } from "pixi.js";
-import { Group } from "@tweenjs/tween.js";
 import type { DailyState } from "../sim/types";
 import { FIBER_KEYS, FIBER_COLORS } from "../sim/types";
 import { FiberModel } from "../sim/FiberModel";
@@ -13,82 +11,70 @@ export interface SpiralAnimationOptions {
   height: number;
 }
 
-const DAY_PANEL_WIDTH = 140;
 const DAY_PANEL_HEIGHT = 200;
-const DAY_PANEL_GAP = 12;
 const BAR_WIDTH = 16;
 const BAR_MAX_HEIGHT = 80;
 const NUM_DAYS = 5;
 
-export class SpiralAnimation extends Container {
-  private _options: SpiralAnimationOptions;
-  private tweenGroup: Group;
-  private panelsContainer: Container;
-  private overlayContainer: Container;
+export class SpiralAnimation {
+  el: HTMLDivElement;
+  onPlayComplete: (() => void) | null = null;
+  onRewindComplete: (() => void) | null = null;
+
+  private optionsWidth: number;
+  private panelsEl: HTMLDivElement;
   private character: Character;
+  private narrationText: HTMLDivElement;
   private spiralData: DailyState[] | null = null;
   private interventionData: DailyState[] | null = null;
   private dayNarrations: string[] = [];
-  private narrationText: Text;
-  private playBtn: Container | null = null;
-  private rewindBtn: Container | null = null;
+  private playBtn: HTMLButtonElement | null = null;
+  private rewindBtn: HTMLButtonElement | null = null;
   private isPlaying = false;
-  private hasPlayed = false;
-  private showingIntervention = false;
   private isNarrow: boolean;
   private dayPanelWidth: number;
   private dayPanelGap: number;
 
-  onPlayComplete: (() => void) | null = null;
-  onRewindComplete: (() => void) | null = null;
-
   constructor(options: SpiralAnimationOptions) {
-    super();
-
-    this._options = options;
-    this.x = options.x;
-    this.y = options.y;
-    this.tweenGroup = new Group();
+    this.optionsWidth = options.width;
     this.isNarrow = options.width < 600;
-    this.dayPanelWidth = this.isNarrow ? 65 : DAY_PANEL_WIDTH;
-    this.dayPanelGap = this.isNarrow ? 6 : DAY_PANEL_GAP;
+    this.dayPanelWidth = this.isNarrow ? 65 : 140;
+    this.dayPanelGap = this.isNarrow ? 6 : 12;
 
-    this.panelsContainer = new Container();
-    this.overlayContainer = new Container();
-    this.addChild(this.panelsContainer);
-    this.addChild(this.overlayContainer);
+    this.el = document.createElement("div");
+    this.el.style.position = "absolute";
+    this.el.style.left = `${options.x}px`;
+    this.el.style.top = `${options.y}px`;
+    this.el.style.width = `${options.width}px`;
+    this.el.style.height = `${options.height}px`;
+
+    this.panelsEl = document.createElement("div");
+    this.panelsEl.style.position = "absolute";
+    this.panelsEl.style.inset = "0";
+    this.el.appendChild(this.panelsEl);
 
     // Character
     this.character = new Character();
     this.character.setPosition(20, DAY_PANEL_HEIGHT + 50);
-    this.addChild(this.character.container);
+    this.el.appendChild(this.character.el);
 
     // Narration text
-    const narStyle = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 14,
-      fill: "#e0e0e0",
-      wordWrap: true,
-      wordWrapWidth: options.width * 0.8,
-      lineHeight: 20,
-    });
-    this.narrationText = new Text({ text: "", style: narStyle });
-    this.narrationText.x = 10;
-    this.narrationText.y = DAY_PANEL_HEIGHT + 90;
-    this.addChild(this.narrationText);
+    this.narrationText = document.createElement("div");
+    this.narrationText.style.position = "absolute";
+    this.narrationText.style.left = "10px";
+    this.narrationText.style.top = `${DAY_PANEL_HEIGHT + 90}px`;
+    this.narrationText.style.fontSize = "14px";
+    this.narrationText.style.color = "#e0e0e0";
+    this.narrationText.style.maxWidth = `${options.width * 0.8}px`;
+    this.narrationText.style.lineHeight = "20px";
+    this.el.appendChild(this.narrationText);
 
     // Precompute spiral data
     const initialFibers = FiberModel.defaultFibers();
-    // Weaken physical to start the spiral (stayed up late)
     const weakened = FiberModel.weakenFiber(initialFibers, "physical", 8);
     const spiral = new DeathSpiral();
     this.spiralData = spiral.simulate(weakened, NUM_DAYS);
-    this.interventionData = spiral.simulateWithIntervention(
-      weakened,
-      NUM_DAYS,
-      1, // intervene on day 2 (index 1)
-      "morning-workout",
-    );
+    this.interventionData = spiral.simulateWithIntervention(weakened, NUM_DAYS, 1, "morning-workout");
 
     this.dayNarrations = [
       "You stay up late scrolling. No big deal.",
@@ -99,88 +85,66 @@ export class SpiralAnimation extends Container {
     ];
 
     // Play button
-    this.playBtn = this.makeButton(
-      "Play \u25B6",
-      options.width / 2 - 60,
-      DAY_PANEL_HEIGHT + 50,
-      0x22c55e,
-      () => this.play(),
-    );
-    this.addChild(this.playBtn);
-
-    // Drive tweens
-    const animate = () => {
-      this.tweenGroup.update();
-      requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
+    this.playBtn = document.createElement("button");
+    this.playBtn.className = "game-btn";
+    this.playBtn.textContent = "Play \u25B6";
+    this.playBtn.style.position = "absolute";
+    this.playBtn.style.left = `${options.width / 2 - 60}px`;
+    this.playBtn.style.top = `${DAY_PANEL_HEIGHT + 50}px`;
+    this.playBtn.style.background = "#22c55e";
+    this.playBtn.style.minWidth = "120px";
+    this.playBtn.style.height = "40px";
+    this.playBtn.addEventListener("click", () => this.play());
+    this.el.appendChild(this.playBtn);
   }
 
-  /** Show rewind button for intervention path */
   showRewindButton(): void {
     if (this.rewindBtn) return;
-    this.rewindBtn = this.makeButton(
-      "\u23EA Rewind",
-      this._options.width / 2 - 60,
-      DAY_PANEL_HEIGHT + 50,
-      0xf97316,
-      () => this.playIntervention(),
-    );
-    this.addChild(this.rewindBtn);
+    this.rewindBtn = document.createElement("button");
+    this.rewindBtn.className = "game-btn";
+    this.rewindBtn.textContent = "\u23EA Rewind";
+    this.rewindBtn.style.position = "absolute";
+    this.rewindBtn.style.left = `${this.optionsWidth / 2 - 60}px`;
+    this.rewindBtn.style.top = `${DAY_PANEL_HEIGHT + 50}px`;
+    this.rewindBtn.style.background = "#f97316";
+    this.rewindBtn.style.minWidth = "120px";
+    this.rewindBtn.style.height = "40px";
+    this.rewindBtn.addEventListener("click", () => this.playIntervention());
+    this.el.appendChild(this.rewindBtn);
   }
-
-  // ─── Playback ─────────────────────────────────────────────────
 
   async play(): Promise<void> {
     if (this.isPlaying || !this.spiralData) return;
     this.isPlaying = true;
+    if (this.playBtn) this.playBtn.style.display = "none";
 
-    if (this.playBtn) {
-      this.playBtn.visible = false;
-    }
-
-    this.panelsContainer.removeChildren();
+    this.panelsEl.innerHTML = "";
     this.character.setExpression("neutral");
 
     for (let day = 0; day < this.spiralData.length; day++) {
       const state = this.spiralData[day];
-
-      // Draw day panel
       this.drawDayPanel(day, state, false);
 
-      // Move character to this panel
       const panelX = day * (this.dayPanelWidth + this.dayPanelGap) + this.dayPanelWidth / 2;
       await this.character.walkTo(panelX, DAY_PANEL_HEIGHT + 50, 600);
 
-      // Update expression based on willpower
       const maxWP = FiberModel.totalWillpower(FiberModel.defaultFibers());
       const pct = maxWP > 0 ? (state.totalWillpower / maxWP) * 100 : 0;
       this.character.setExpression(Character.expressionForWillpower(pct));
-
-      // Show narration
-      this.narrationText.text = this.dayNarrations[day] ?? "";
-
+      this.narrationText.textContent = this.dayNarrations[day] ?? "";
       await this.delay(1500);
     }
 
     this.isPlaying = false;
-    this.hasPlayed = true;
-
-    if (this.onPlayComplete) {
-      this.onPlayComplete();
-    }
+    if (this.onPlayComplete) this.onPlayComplete();
   }
 
   async playIntervention(): Promise<void> {
     if (this.isPlaying || !this.interventionData) return;
     this.isPlaying = true;
-    this.showingIntervention = true;
+    if (this.rewindBtn) this.rewindBtn.style.display = "none";
 
-    if (this.rewindBtn) {
-      this.rewindBtn.visible = false;
-    }
-
-    this.panelsContainer.removeChildren();
+    this.panelsEl.innerHTML = "";
     this.character.setPosition(20, DAY_PANEL_HEIGHT + 50);
     this.character.setExpression("neutral");
 
@@ -189,12 +153,11 @@ export class SpiralAnimation extends Container {
       "But today, you force the workout. It costs almost everything.",
       "The physical fiber stabilizes. Focus returns a little.",
       "You make it to work. You call a friend.",
-      "The spiral breaks. Not fixed — but stopped.",
+      "The spiral breaks. Not fixed \u2014 but stopped.",
     ];
 
     for (let day = 0; day < this.interventionData.length; day++) {
       const state = this.interventionData[day];
-
       this.drawDayPanel(day, state, day === 1);
 
       const panelX = day * (this.dayPanelWidth + this.dayPanelGap) + this.dayPanelWidth / 2;
@@ -203,171 +166,97 @@ export class SpiralAnimation extends Container {
       const maxWP = FiberModel.totalWillpower(FiberModel.defaultFibers());
       const pct = maxWP > 0 ? (state.totalWillpower / maxWP) * 100 : 0;
       this.character.setExpression(Character.expressionForWillpower(pct));
-
-      this.narrationText.text = interventionNarrations[day] ?? "";
-
+      this.narrationText.textContent = interventionNarrations[day] ?? "";
       await this.delay(1500);
     }
 
     this.isPlaying = false;
-
-    if (this.onRewindComplete) {
-      this.onRewindComplete();
-    }
+    if (this.onRewindComplete) this.onRewindComplete();
   }
 
-  // ─── Drawing ──────────────────────────────────────────────────
-
-  private drawDayPanel(
-    dayIndex: number,
-    state: DailyState,
-    isIntervention: boolean,
-  ): void {
+  private drawDayPanel(dayIndex: number, state: DailyState, isIntervention: boolean): void {
     const panelW = this.dayPanelWidth;
     const panelGap = this.dayPanelGap;
     const barWidth = this.isNarrow ? 8 : BAR_WIDTH;
     const barGap = this.isNarrow ? 2 : 4;
-    const c = new Container();
-    const px = dayIndex * (panelW + panelGap);
-    c.x = px;
-    c.y = 0;
 
-    // Panel background
-    const bg = new Graphics();
-    const bgColor = isIntervention ? 0x1e3a2f : 0x1f2937;
-    bg.roundRect(0, 0, panelW, DAY_PANEL_HEIGHT, 8).fill(bgColor);
-    bg.alpha = 0.8;
-    c.addChild(bg);
+    const panel = document.createElement("div");
+    panel.style.position = "absolute";
+    panel.style.left = `${dayIndex * (panelW + panelGap)}px`;
+    panel.style.top = "0";
+    panel.style.width = `${panelW}px`;
+    panel.style.height = `${DAY_PANEL_HEIGHT}px`;
+    panel.style.borderRadius = "8px";
+    panel.style.background = isIntervention ? "rgba(30, 58, 47, 0.8)" : "rgba(31, 41, 55, 0.8)";
 
     // Day label
-    const dayStyle = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: this.isNarrow ? 10 : 14,
-      fill: isIntervention ? "#4ade80" : "#e0e0e0",
-      fontWeight: "bold",
-    });
-    const dayLabel = new Text({
-      text: this.isNarrow ? `D${dayIndex + 1}` : `Day ${dayIndex + 1}`,
-      style: dayStyle,
-    });
-    dayLabel.anchor.set(0.5, 0);
-    dayLabel.x = panelW / 2;
-    dayLabel.y = 8;
-    c.addChild(dayLabel);
+    const dayLabel = document.createElement("div");
+    dayLabel.style.textAlign = "center";
+    dayLabel.style.paddingTop = "8px";
+    dayLabel.style.fontSize = this.isNarrow ? "10px" : "14px";
+    dayLabel.style.fontWeight = "bold";
+    dayLabel.style.color = isIntervention ? "#4ade80" : "#e0e0e0";
+    dayLabel.textContent = this.isNarrow ? `D${dayIndex + 1}` : `Day ${dayIndex + 1}`;
+    panel.appendChild(dayLabel);
 
-    // Fiber bars
-    const barStartX =
-      (panelW - FIBER_KEYS.length * (barWidth + barGap)) / 2;
-    const barBaseY = 120;
+    // Fiber bars using a small canvas
+    const barCanvas = document.createElement("canvas");
+    barCanvas.width = panelW;
+    barCanvas.height = 100;
+    barCanvas.style.position = "absolute";
+    barCanvas.style.top = "30px";
+    const bCtx = barCanvas.getContext("2d")!;
+
+    const barStartX = (panelW - FIBER_KEYS.length * (barWidth + barGap)) / 2;
+    const barBaseY = 90;
 
     FIBER_KEYS.forEach((key, i) => {
       const value = state.fibers[key];
       const barHeight = (value / 20) * BAR_MAX_HEIGHT;
       const bx = barStartX + i * (barWidth + barGap);
 
-      const bar = new Graphics();
-      bar
-        .roundRect(bx, barBaseY - barHeight, barWidth, barHeight, 3)
-        .fill(FIBER_COLORS[key]);
-      c.addChild(bar);
+      bCtx.fillStyle = FIBER_COLORS[key];
+      bCtx.beginPath();
+      bCtx.roundRect(bx, barBaseY - barHeight, barWidth, barHeight, 3);
+      bCtx.fill();
 
-      // Value label (skip on narrow screens to save space)
       if (!this.isNarrow) {
-        const valStyle = new TextStyle({
-          fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-          fontSize: 9,
-          fill: FIBER_COLORS[key],
-        });
-        const valLabel = new Text({
-          text: String(Math.round(value)),
-          style: valStyle,
-        });
-        valLabel.anchor.set(0.5, 0);
-        valLabel.x = bx + barWidth / 2;
-        valLabel.y = barBaseY + 4;
-        c.addChild(valLabel);
+        bCtx.fillStyle = FIBER_COLORS[key];
+        bCtx.font = "9px Arial, Helvetica, sans-serif";
+        bCtx.textAlign = "center";
+        bCtx.fillText(String(Math.round(value)), bx + barWidth / 2, barBaseY + 12);
       }
     });
+    panel.appendChild(barCanvas);
 
-    // Willpower total
-    const wpStyle = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: this.isNarrow ? 9 : 12,
-      fill: "#9ca3af",
-    });
-    const wpLabel = new Text({
-      text: `WP: ${state.totalWillpower}`,
-      style: wpStyle,
-    });
-    wpLabel.anchor.set(0.5, 0);
-    wpLabel.x = panelW / 2;
-    wpLabel.y = 140;
-    c.addChild(wpLabel);
+    // WP label
+    const wpLabel = document.createElement("div");
+    wpLabel.style.textAlign = "center";
+    wpLabel.style.position = "absolute";
+    wpLabel.style.bottom = "40px";
+    wpLabel.style.width = "100%";
+    wpLabel.style.fontSize = this.isNarrow ? "9px" : "12px";
+    wpLabel.style.color = "#9ca3af";
+    wpLabel.textContent = `WP: ${state.totalWillpower}`;
+    panel.appendChild(wpLabel);
 
-    // Activity summary
+    // Skipped activities
     const skippedStr = state.activitiesSkipped.length > 0
       ? state.activitiesSkipped.join(", ").slice(0, this.isNarrow ? 15 : 30)
       : "";
-
-    const actStyle = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: this.isNarrow ? 7 : 9,
-      fill: "#6b7280",
-      wordWrap: true,
-      wordWrapWidth: panelW - 16,
-    });
-
     if (skippedStr) {
-      const skippedLabel = new Text({
-        text: `Skipped: ${skippedStr}`,
-        style: actStyle,
-      });
-      skippedLabel.x = 8;
-      skippedLabel.y = 160;
-      c.addChild(skippedLabel);
+      const skippedLabel = document.createElement("div");
+      skippedLabel.style.position = "absolute";
+      skippedLabel.style.bottom = "8px";
+      skippedLabel.style.left = "8px";
+      skippedLabel.style.right = "8px";
+      skippedLabel.style.fontSize = this.isNarrow ? "7px" : "9px";
+      skippedLabel.style.color = "#6b7280";
+      skippedLabel.textContent = `Skipped: ${skippedStr}`;
+      panel.appendChild(skippedLabel);
     }
 
-    this.panelsContainer.addChild(c);
-  }
-
-  // ─── Helpers ──────────────────────────────────────────────────
-
-  private makeButton(
-    text: string,
-    x: number,
-    y: number,
-    color: number,
-    onClick: () => void,
-  ): Container {
-    const c = new Container();
-    c.x = x;
-    c.y = y;
-
-    const bg = new Graphics();
-    bg.roundRect(0, 0, 120, 40, 8).fill(color);
-    c.addChild(bg);
-
-    const style = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 16,
-      fill: "#ffffff",
-      fontWeight: "bold",
-    });
-    const label = new Text({ text, style });
-    label.anchor.set(0.5);
-    label.x = 60;
-    label.y = 20;
-    c.addChild(label);
-
-    c.eventMode = "static";
-    c.cursor = "pointer";
-    c.hitArea = {
-      contains: (px: number, py: number) =>
-        px >= 0 && px <= 120 && py >= 0 && py <= 40,
-    };
-    c.on("pointerdown", onClick);
-
-    return c;
+    this.panelsEl.appendChild(panel);
   }
 
   private delay(ms: number): Promise<void> {

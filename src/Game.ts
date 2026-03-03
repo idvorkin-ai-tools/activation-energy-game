@@ -1,4 +1,3 @@
-import { Application } from "pixi.js";
 import { update as updateTweens } from "@tweenjs/tween.js";
 import { SceneManager } from "./engine/SceneManager";
 import { WillpowerBar } from "./engine/WillpowerBar";
@@ -12,42 +11,43 @@ import { Ch6_Levers } from "./chapters/Ch6_Levers";
 import { Ch7_Sandbox } from "./chapters/Ch7_Sandbox";
 
 export class Game {
-  app: Application;
+  gameEl: HTMLElement;
   sceneManager: SceneManager;
   willpowerBar: WillpowerBar;
+  private rafId = 0;
 
-  constructor(app: Application) {
-    this.app = app;
-    this.sceneManager = new SceneManager(app);
+  constructor(gameEl: HTMLElement) {
+    this.gameEl = gameEl;
+    this.sceneManager = new SceneManager(gameEl);
 
-    // Willpower bar positioned at top center
-    const barWidth = Math.min(400, app.screen.width * 0.6);
+    const barWidth = Math.min(400, gameEl.clientWidth * 0.6);
     this.willpowerBar = new WillpowerBar({
-      x: (app.screen.width - barWidth) / 2,
+      x: (gameEl.clientWidth - barWidth) / 2,
       y: 16,
       width: barWidth,
       height: 20,
     });
-    app.stage.addChild(this.willpowerBar);
+    gameEl.appendChild(this.willpowerBar.el);
 
-    // Register ticker for tween updates (global + per-component groups)
-    app.ticker.add(() => {
+    // Global animation loop for tweens
+    const tick = () => {
       updateTweens();
-      this.sceneManager.update();
       this.willpowerBar.update();
-    });
+      this.rafId = requestAnimationFrame(tick);
+    };
+    this.rafId = requestAnimationFrame(tick);
   }
 
   start(): void {
     const chapters = [
-      () => new Ch0_Morning(this.app, this),
-      () => new Ch1_Starting(this.app, this),
-      () => new Ch2_Stopping(this.app, this),
-      () => new Ch3_Day(this.app, this),
-      () => new Ch4_Fibers(this.app, this),
-      () => new Ch5_DeathSpiral(this.app, this),
-      () => new Ch6_Levers(this.app, this),
-      () => new Ch7_Sandbox(this.app, this),
+      () => new Ch0_Morning(this),
+      () => new Ch1_Starting(this),
+      () => new Ch2_Stopping(this),
+      () => new Ch3_Day(this),
+      () => new Ch4_Fibers(this),
+      () => new Ch5_DeathSpiral(this),
+      () => new Ch6_Levers(this),
+      () => new Ch7_Sandbox(this),
     ];
 
     const loadChapter = (index: number) => {
