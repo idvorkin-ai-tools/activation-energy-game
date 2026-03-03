@@ -1,5 +1,5 @@
 import type { Activity, DaySlot, FiberState, SimEvent, SimResult } from "./types";
-import { FIBER_KEYS } from "./types";
+
 import { FiberModel } from "./FiberModel";
 
 export class DaySimulator {

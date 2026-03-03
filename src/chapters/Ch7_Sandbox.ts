@@ -1,7 +1,7 @@
 import { Application, Container, Graphics, Text, TextStyle, FederatedPointerEvent } from "pixi.js";
 import { Scene } from "../engine/Scene";
 import { TextBox } from "../engine/TextBox";
-import { Button } from "../engine/Button";
+
 import { DayTimeline } from "../interactions/DayTimeline";
 import { ACTIVITIES } from "../sim/activities";
 import { FIBER_KEYS, FIBER_COLORS } from "../sim/types";
@@ -359,7 +359,7 @@ export class Ch7_Sandbox extends Scene {
     const toggleH = 32;
 
     let morningHabitsOn = false;
-    let schedulesOn = false;
+    let _schedulesOn = false;
     let highPeersOn = false;
 
     const morningToggle = new ToggleButton(
@@ -382,7 +382,7 @@ export class Ch7_Sandbox extends Scene {
       toggleW,
       toggleH,
       (on) => {
-        schedulesOn = on;
+        _schedulesOn = on;
         updateTotalDisplay();
       },
     );
