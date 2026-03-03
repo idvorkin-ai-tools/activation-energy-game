@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Deployment
+
+Production auto-deploys on push to main via GitHub Actions. PRs get preview deploys at `pr-{N}-activation-energy-game.surge.sh` with an auto-comment on the PR.
+
 ## What This Is
 
 An interactive narrative game (Nicky Case-style explorable explainer) about willpower, habits, and activation energy. Built with PixiJS — all graphics are procedurally drawn (no image sprites). 8 sequential chapters, each with narrative text and an interactive component.
