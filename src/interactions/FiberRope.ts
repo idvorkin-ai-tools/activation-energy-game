@@ -312,6 +312,10 @@ export class FiberRope extends Container {
   // ─── Presets ──────────────────────────────────────────────────
 
   private createPresets(): void {
+    const isNarrow = this._options.width < 500;
+    const btnW = isNarrow ? 80 : 120;
+    const btnSpacing = isNarrow ? 90 : 130;
+
     const presets = [
       { label: "Gap Year", fiber: "professional" as keyof FiberState },
       { label: "Sick Week", fiber: "physical" as keyof FiberState },
@@ -320,21 +324,21 @@ export class FiberRope extends Container {
 
     presets.forEach((preset, i) => {
       const c = new Container();
-      c.x = i * 130;
+      c.x = i * btnSpacing;
 
       const bg = new Graphics();
-      bg.roundRect(0, 0, 120, 36, 6).fill(0x374151);
+      bg.roundRect(0, 0, btnW, 36, 6).fill(0x374151);
       c.addChild(bg);
 
       const style = new TextStyle({
         fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 13,
+        fontSize: isNarrow ? 11 : 13,
         fill: "#e0e0e0",
         fontWeight: "bold",
       });
       const label = new Text({ text: preset.label, style });
       label.anchor.set(0.5);
-      label.x = 60;
+      label.x = btnW / 2;
       label.y = 18;
       c.addChild(label);
 
@@ -342,7 +346,7 @@ export class FiberRope extends Container {
       c.cursor = "pointer";
       c.hitArea = {
         contains: (px: number, py: number) =>
-          px >= 0 && px <= 120 && py >= 0 && py <= 36,
+          px >= 0 && px <= btnW && py >= 0 && py <= 36,
       };
       c.on("pointerdown", () => this.applyPreset(preset.fiber));
 

@@ -253,36 +253,64 @@ export class Ch7_Sandbox extends Scene {
     const textX = 80;
     const textMaxW = w * 0.7;
 
-    // Layout: left 60% for timeline, right 40% for controls
-    const leftWidth = Math.floor(w * 0.6);
-    const rightX = leftWidth + 10;
-    const rightWidth = w - rightX - 10;
+    // Layout: responsive - stack vertically on narrow screens
+    const isNarrow = w < 700;
 
-    // ─── Left Panel: Day Timeline ────────────────────────────
+    let timelineX: number, timelineY: number, timelineW: number, timelineH: number;
+    let controlX: number, controlY: number, controlW: number, controlH: number;
+
+    if (isNarrow) {
+      // Stacked: timeline on top, controls below
+      timelineX = 10;
+      timelineY = 50;
+      timelineW = w - 20;
+      timelineH = h * 0.45;
+      controlX = 10;
+      controlY = timelineY + timelineH + 10;
+      controlW = w - 20;
+      controlH = h * 0.40;
+    } else {
+      // Side by side: left 60% for timeline, right 40% for controls
+      const leftWidth = Math.floor(w * 0.6);
+      const rightX = leftWidth + 10;
+      const rightWidth = w - rightX - 10;
+      timelineX = 10;
+      timelineY = 50;
+      timelineW = leftWidth - 20;
+      timelineH = h * 0.65;
+      controlX = rightX;
+      controlY = 50;
+      controlW = rightWidth;
+      controlH = h * 0.65;
+    }
+
+    // ─── Left/Top Panel: Day Timeline ────────────────────────
 
     const timeline = new DayTimeline({
-      x: 10,
-      y: 50,
-      width: leftWidth - 20,
-      height: h * 0.65,
+      x: timelineX,
+      y: timelineY,
+      width: timelineW,
+      height: timelineH,
       activities: ACTIVITIES,
       willpowerBar: this.game.willpowerBar,
     });
     this.container.addChild(timeline);
 
-    // ─── Right Panel: Controls ───────────────────────────────
+    // ─── Right/Bottom Panel: Controls ────────────────────────
 
     const controlPanel = new Container();
-    controlPanel.x = rightX;
-    controlPanel.y = 50;
+    controlPanel.x = controlX;
+    controlPanel.y = controlY;
     this.container.addChild(controlPanel);
 
     // Panel background
     const panelBg = new Graphics();
     panelBg
-      .roundRect(0, 0, rightWidth, h * 0.65, 8)
+      .roundRect(0, 0, controlW, controlH, 8)
       .fill({ color: 0x1e293b, alpha: 0.6 });
     controlPanel.addChild(panelBg);
+
+    const rightWidth = controlW;
 
     // ── Fiber Sliders ──────────────────────────────────────
 

@@ -24,7 +24,9 @@ const HANDLE_RADIUS = 10;
 export class TimelineScrubber extends Container {
   private options: TimelineScrubberOptions;
   private panelWidth: number;
+  private panelHeight: number;
   private graphHeight: number;
+  private isNarrow: boolean;
   private nowLines: Graphics[] = [];
   private valueLabels: Text[] = [];
   private scrubberHandle: Graphics;
@@ -38,11 +40,21 @@ export class TimelineScrubber extends Container {
     this.options = options;
     this.x = options.x;
     this.y = options.y;
+    this.isNarrow = options.width < 600;
 
     // Calculate panel dimensions
     const numPanels = options.curves.length;
-    this.panelWidth = (options.width - PANEL_GAP * (numPanels - 1)) / numPanels;
-    this.graphHeight = options.height - SCRUBBER_HEIGHT - GRAPH_TOP - 20;
+    if (this.isNarrow) {
+      // Stack vertically: each panel gets full width, half the available height
+      this.panelWidth = options.width;
+      const availableHeight = options.height - SCRUBBER_HEIGHT - 20;
+      this.panelHeight = (availableHeight - PANEL_GAP) / numPanels;
+      this.graphHeight = this.panelHeight - GRAPH_TOP - 10;
+    } else {
+      this.panelWidth = (options.width - PANEL_GAP * (numPanels - 1)) / numPanels;
+      this.panelHeight = options.height - SCRUBBER_HEIGHT - 10;
+      this.graphHeight = options.height - SCRUBBER_HEIGHT - GRAPH_TOP - 20;
+    }
 
     // Draw panels
     options.curves.forEach((curve, i) => {
@@ -63,11 +75,19 @@ export class TimelineScrubber extends Container {
   }
 
   private drawPanel(curve: StoppingCurve, index: number): void {
-    const panelX = index * (this.panelWidth + PANEL_GAP);
+    let panelX: number;
+    let panelY: number;
+    if (this.isNarrow) {
+      panelX = 0;
+      panelY = index * (this.panelHeight + PANEL_GAP);
+    } else {
+      panelX = index * (this.panelWidth + PANEL_GAP);
+      panelY = 0;
+    }
 
     // Panel background
     const bg = new Graphics();
-    bg.roundRect(panelX, 0, this.panelWidth, this.options.height - SCRUBBER_HEIGHT - 10, 8).fill(0x1f2937);
+    bg.roundRect(panelX, panelY, this.panelWidth, this.panelHeight, 8).fill(0x1f2937);
     bg.alpha = 0.8;
     this.addChild(bg);
 
@@ -80,7 +100,7 @@ export class TimelineScrubber extends Container {
     });
     const title = new Text({ text: curve.label, style: titleStyle });
     title.x = panelX + this.panelWidth / 2;
-    title.y = 10;
+    title.y = panelY + 10;
     title.anchor.set(0.5, 0);
     this.addChild(title);
 
@@ -88,11 +108,12 @@ export class TimelineScrubber extends Container {
     const axisGraphics = new Graphics();
     const graphLeft = panelX + PANEL_PADDING;
     const graphRight = panelX + this.panelWidth - PANEL_PADDING;
-    const graphBottom = GRAPH_TOP + this.graphHeight;
+    const graphTop = panelY + GRAPH_TOP;
+    const graphBottom = graphTop + this.graphHeight;
     const graphWidth = graphRight - graphLeft;
 
     // Y-axis
-    axisGraphics.moveTo(graphLeft, GRAPH_TOP).lineTo(graphLeft, graphBottom);
+    axisGraphics.moveTo(graphLeft, graphTop).lineTo(graphLeft, graphBottom);
     axisGraphics.stroke({ width: 1, color: 0x4b5563 });
 
     // X-axis
@@ -149,7 +170,7 @@ export class TimelineScrubber extends Container {
     const valueLabel = new Text({ text: "", style: valueLabelStyle });
     valueLabel.anchor.set(0.5, 1);
     valueLabel.x = panelX + this.panelWidth / 2;
-    valueLabel.y = GRAPH_TOP - 2;
+    valueLabel.y = graphTop - 2;
     this.addChild(valueLabel);
     this.valueLabels.push(valueLabel);
   }
@@ -243,11 +264,20 @@ export class TimelineScrubber extends Container {
     const { curves, maxTimeMinutes } = this.options;
 
     curves.forEach((curve, i) => {
-      const panelX = i * (this.panelWidth + PANEL_GAP);
+      let panelX: number;
+      let panelY: number;
+      if (this.isNarrow) {
+        panelX = 0;
+        panelY = i * (this.panelHeight + PANEL_GAP);
+      } else {
+        panelX = i * (this.panelWidth + PANEL_GAP);
+        panelY = 0;
+      }
       const graphLeft = panelX + PANEL_PADDING;
       const graphRight = panelX + this.panelWidth - PANEL_PADDING;
       const graphWidth = graphRight - graphLeft;
-      const graphBottom = GRAPH_TOP + this.graphHeight;
+      const graphTop = panelY + GRAPH_TOP;
+      const graphBottom = graphTop + this.graphHeight;
 
       const nowLine = this.nowLines[i];
       nowLine.clear();
@@ -256,7 +286,7 @@ export class TimelineScrubber extends Container {
       const lineX = graphLeft + xFraction * graphWidth;
 
       // Vertical line
-      nowLine.moveTo(lineX, GRAPH_TOP).lineTo(lineX, graphBottom);
+      nowLine.moveTo(lineX, graphTop).lineTo(lineX, graphBottom);
       nowLine.stroke({ width: 1.5, color: 0xfbbf24, alpha: 0.8 });
 
       // Dot on the curve at current position

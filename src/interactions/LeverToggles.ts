@@ -207,7 +207,33 @@ export class ScheduleComparison extends Container {
     this.x = options.x;
     this.y = options.y;
 
-    const halfW = options.width / 2;
+    const isNarrow = options.width < 500;
+
+    // In narrow mode: stack vertically (top half = No Schedule, bottom half = Scheduled)
+    // In wide mode: side by side (left = No Schedule, right = Scheduled)
+    let leftCenterX: number;
+    let leftCenterY: number;
+    let rightCenterX: number;
+    let rightCenterY: number;
+    let sectionW: number;
+    let halfW: number;
+
+    if (isNarrow) {
+      const halfH = options.height / 2;
+      sectionW = options.width;
+      halfW = options.width / 2;
+      leftCenterX = options.width / 2;
+      leftCenterY = halfH * 0.5;
+      rightCenterX = options.width / 2;
+      rightCenterY = halfH + halfH * 0.5;
+    } else {
+      halfW = options.width / 2;
+      sectionW = halfW;
+      leftCenterX = halfW / 2;
+      leftCenterY = options.height * 0.5;
+      rightCenterX = halfW + halfW / 2;
+      rightCenterY = options.height * 0.5;
+    }
 
     // Section labels
     const leftLabel = new Text({
@@ -220,8 +246,8 @@ export class ScheduleComparison extends Container {
       }),
     });
     leftLabel.anchor.set(0.5, 0);
-    leftLabel.x = halfW / 2;
-    leftLabel.y = 0;
+    leftLabel.x = leftCenterX;
+    leftLabel.y = isNarrow ? 0 : 0;
     this.addChild(leftLabel);
 
     const rightLabel = new Text({
@@ -234,24 +260,28 @@ export class ScheduleComparison extends Container {
       }),
     });
     rightLabel.anchor.set(0.5, 0);
-    rightLabel.x = halfW + halfW / 2;
-    rightLabel.y = 0;
+    rightLabel.x = rightCenterX;
+    rightLabel.y = isNarrow ? options.height / 2 : 0;
     this.addChild(rightLabel);
 
     // Divider
     const divider = new Graphics();
-    divider.moveTo(halfW, 0).lineTo(halfW, options.height);
+    if (isNarrow) {
+      divider.moveTo(0, options.height / 2).lineTo(options.width, options.height / 2);
+    } else {
+      divider.moveTo(halfW, 0).lineTo(halfW, options.height);
+    }
     divider.stroke({ width: 1, color: 0x374151 });
     this.addChild(divider);
 
     // Characters
     this.leftCharacter = new Character();
-    this.leftCharacter.setPosition(halfW / 2, options.height * 0.5);
+    this.leftCharacter.setPosition(leftCenterX, leftCenterY);
     this.leftCharacter.setExpression("neutral");
     this.addChild(this.leftCharacter.container);
 
     this.rightCharacter = new Character();
-    this.rightCharacter.setPosition(halfW + halfW / 2, options.height * 0.5);
+    this.rightCharacter.setPosition(rightCenterX, rightCenterY);
     this.rightCharacter.setExpression("neutral");
     this.addChild(this.rightCharacter.container);
 
@@ -264,13 +294,13 @@ export class ScheduleComparison extends Container {
         fill: "#fbbf24",
         fontStyle: "italic",
         wordWrap: true,
-        wordWrapWidth: halfW - 40,
+        wordWrapWidth: sectionW - 40,
         align: "center",
       }),
     });
     this.leftBubble.anchor.set(0.5, 1);
-    this.leftBubble.x = halfW / 2;
-    this.leftBubble.y = options.height * 0.5 - 50;
+    this.leftBubble.x = leftCenterX;
+    this.leftBubble.y = leftCenterY - 50;
     this.addChild(this.leftBubble);
 
     this.rightBubble = new Text({
@@ -281,13 +311,13 @@ export class ScheduleComparison extends Container {
         fill: "#4ade80",
         fontWeight: "bold",
         wordWrap: true,
-        wordWrapWidth: halfW - 40,
+        wordWrapWidth: sectionW - 40,
         align: "center",
       }),
     });
     this.rightBubble.anchor.set(0.5, 1);
-    this.rightBubble.x = halfW + halfW / 2;
-    this.rightBubble.y = options.height * 0.5 - 50;
+    this.rightBubble.x = rightCenterX;
+    this.rightBubble.y = rightCenterY - 50;
     this.addChild(this.rightBubble);
 
     // Outcome text (shown later)
@@ -301,8 +331,8 @@ export class ScheduleComparison extends Container {
       }),
     });
     this.leftOutcome.anchor.set(0.5, 0);
-    this.leftOutcome.x = halfW / 2;
-    this.leftOutcome.y = options.height * 0.7;
+    this.leftOutcome.x = leftCenterX;
+    this.leftOutcome.y = isNarrow ? leftCenterY + 40 : options.height * 0.7;
     this.addChild(this.leftOutcome);
 
     this.rightOutcome = new Text({
@@ -315,11 +345,11 @@ export class ScheduleComparison extends Container {
       }),
     });
     this.rightOutcome.anchor.set(0.5, 0);
-    this.rightOutcome.x = halfW + halfW / 2;
-    this.rightOutcome.y = options.height * 0.7;
+    this.rightOutcome.x = rightCenterX;
+    this.rightOutcome.y = isNarrow ? rightCenterY + 40 : options.height * 0.7;
     this.addChild(this.rightOutcome);
 
-    this.startAnimation(halfW);
+    this.startAnimation(isNarrow ? options.width : halfW);
   }
 
   private async startAnimation(halfW: number): Promise<void> {

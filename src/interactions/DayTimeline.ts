@@ -46,6 +46,8 @@ export class DayTimeline extends Container {
   private timelineGfx: Graphics;
   private blocksContainer: Container;
   private overlayContainer: Container;
+  private isNarrow: boolean;
+  private blockW: number;
 
   private blockEntries: {
     activity: Activity;
@@ -71,6 +73,8 @@ export class DayTimeline extends Container {
     this.x = options.x;
     this.y = options.y;
     this.tweenGroup = new Group();
+    this.isNarrow = options.width < 600;
+    this.blockW = this.isNarrow ? 100 : BLOCK_W;
 
     this.timelineGfx = new Graphics();
     this.blocksContainer = new Container();
@@ -160,6 +164,7 @@ export class DayTimeline extends Container {
 
   private createBlocks(): void {
     const { activities } = this.options;
+    const blockW = this.blockW;
     const stackX = 10;
     const stackStartY = TIMELINE_Y + 90;
     const stackSpacing = BLOCK_H + 8;
@@ -169,22 +174,22 @@ export class DayTimeline extends Container {
       const color = BLOCK_COLORS[index % BLOCK_COLORS.length];
 
       const bg = new Graphics();
-      bg.roundRect(0, 0, BLOCK_W, BLOCK_H, BLOCK_RADIUS).fill(color);
+      bg.roundRect(0, 0, blockW, BLOCK_H, BLOCK_RADIUS).fill(color);
       bg.alpha = 0.9;
       c.addChild(bg);
 
       const labelStyle = new TextStyle({
         fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 12,
+        fontSize: this.isNarrow ? 10 : 12,
         fill: "#ffffff",
         fontWeight: "bold",
         wordWrap: true,
-        wordWrapWidth: BLOCK_W - 12,
+        wordWrapWidth: blockW - 12,
         align: "center",
       });
       const label = new Text({ text: activity.name, style: labelStyle });
       label.anchor.set(0.5);
-      label.x = BLOCK_W / 2;
+      label.x = blockW / 2;
       label.y = BLOCK_H / 2;
       c.addChild(label);
 
@@ -233,7 +238,7 @@ export class DayTimeline extends Container {
         dragging = false;
         c.cursor = "grab";
 
-        const centerX = c.x + BLOCK_W / 2;
+        const centerX = c.x + blockW / 2;
         const centerY = c.y + BLOCK_H / 2;
 
         // If dropped near the timeline, snap it
@@ -243,7 +248,7 @@ export class DayTimeline extends Container {
           centerX < this.options.width
         ) {
           const minute = Math.round(this.xToMinute(centerX) / 15) * 15; // snap to 15-min
-          const snappedX = this.minuteToX(minute) - BLOCK_W / 2;
+          const snappedX = this.minuteToX(minute) - blockW / 2;
           c.x = snappedX;
           c.y = TIMELINE_Y - BLOCK_H - 4;
           entry.placed = true;
@@ -269,9 +274,10 @@ export class DayTimeline extends Container {
   // ─── Buttons ──────────────────────────────────────────────────
 
   private createButtons(): void {
+    const btnX = this.isNarrow ? this.options.width - 120 : this.options.width - 200;
     this.playButton = this.makeButton(
       "Play \u25B6",
-      this.options.width - 200,
+      btnX,
       TIMELINE_Y + 100,
       0x22c55e,
       () => this.runPlayback(),
@@ -282,7 +288,7 @@ export class DayTimeline extends Container {
 
     this.resetButton = this.makeButton(
       "Reset",
-      this.options.width - 200,
+      btnX,
       TIMELINE_Y + 160,
       0x6b7280,
       () => this.resetTimeline(),

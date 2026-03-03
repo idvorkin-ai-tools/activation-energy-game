@@ -35,6 +35,9 @@ export class SpiralAnimation extends Container {
   private isPlaying = false;
   private hasPlayed = false;
   private showingIntervention = false;
+  private isNarrow: boolean;
+  private dayPanelWidth: number;
+  private dayPanelGap: number;
 
   onPlayComplete: (() => void) | null = null;
   onRewindComplete: (() => void) | null = null;
@@ -46,6 +49,9 @@ export class SpiralAnimation extends Container {
     this.x = options.x;
     this.y = options.y;
     this.tweenGroup = new Group();
+    this.isNarrow = options.width < 600;
+    this.dayPanelWidth = this.isNarrow ? 65 : DAY_PANEL_WIDTH;
+    this.dayPanelGap = this.isNarrow ? 6 : DAY_PANEL_GAP;
 
     this.panelsContainer = new Container();
     this.overlayContainer = new Container();
@@ -143,7 +149,7 @@ export class SpiralAnimation extends Container {
       this.drawDayPanel(day, state, false);
 
       // Move character to this panel
-      const panelX = day * (DAY_PANEL_WIDTH + DAY_PANEL_GAP) + DAY_PANEL_WIDTH / 2;
+      const panelX = day * (this.dayPanelWidth + this.dayPanelGap) + this.dayPanelWidth / 2;
       await this.character.walkTo(panelX, DAY_PANEL_HEIGHT + 50, 600);
 
       // Update expression based on willpower
@@ -191,7 +197,7 @@ export class SpiralAnimation extends Container {
 
       this.drawDayPanel(day, state, day === 1);
 
-      const panelX = day * (DAY_PANEL_WIDTH + DAY_PANEL_GAP) + DAY_PANEL_WIDTH / 2;
+      const panelX = day * (this.dayPanelWidth + this.dayPanelGap) + this.dayPanelWidth / 2;
       await this.character.walkTo(panelX, DAY_PANEL_HEIGHT + 50, 600);
 
       const maxWP = FiberModel.totalWillpower(FiberModel.defaultFibers());
@@ -217,70 +223,76 @@ export class SpiralAnimation extends Container {
     state: DailyState,
     isIntervention: boolean,
   ): void {
+    const panelW = this.dayPanelWidth;
+    const panelGap = this.dayPanelGap;
+    const barWidth = this.isNarrow ? 8 : BAR_WIDTH;
+    const barGap = this.isNarrow ? 2 : 4;
     const c = new Container();
-    const px = dayIndex * (DAY_PANEL_WIDTH + DAY_PANEL_GAP);
+    const px = dayIndex * (panelW + panelGap);
     c.x = px;
     c.y = 0;
 
     // Panel background
     const bg = new Graphics();
     const bgColor = isIntervention ? 0x1e3a2f : 0x1f2937;
-    bg.roundRect(0, 0, DAY_PANEL_WIDTH, DAY_PANEL_HEIGHT, 8).fill(bgColor);
+    bg.roundRect(0, 0, panelW, DAY_PANEL_HEIGHT, 8).fill(bgColor);
     bg.alpha = 0.8;
     c.addChild(bg);
 
     // Day label
     const dayStyle = new TextStyle({
       fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 14,
+      fontSize: this.isNarrow ? 10 : 14,
       fill: isIntervention ? "#4ade80" : "#e0e0e0",
       fontWeight: "bold",
     });
     const dayLabel = new Text({
-      text: `Day ${dayIndex + 1}`,
+      text: this.isNarrow ? `D${dayIndex + 1}` : `Day ${dayIndex + 1}`,
       style: dayStyle,
     });
     dayLabel.anchor.set(0.5, 0);
-    dayLabel.x = DAY_PANEL_WIDTH / 2;
+    dayLabel.x = panelW / 2;
     dayLabel.y = 8;
     c.addChild(dayLabel);
 
     // Fiber bars
     const barStartX =
-      (DAY_PANEL_WIDTH - FIBER_KEYS.length * (BAR_WIDTH + 4)) / 2;
+      (panelW - FIBER_KEYS.length * (barWidth + barGap)) / 2;
     const barBaseY = 120;
 
     FIBER_KEYS.forEach((key, i) => {
       const value = state.fibers[key];
       const barHeight = (value / 20) * BAR_MAX_HEIGHT;
-      const bx = barStartX + i * (BAR_WIDTH + 4);
+      const bx = barStartX + i * (barWidth + barGap);
 
       const bar = new Graphics();
       bar
-        .roundRect(bx, barBaseY - barHeight, BAR_WIDTH, barHeight, 3)
+        .roundRect(bx, barBaseY - barHeight, barWidth, barHeight, 3)
         .fill(FIBER_COLORS[key]);
       c.addChild(bar);
 
-      // Value label
-      const valStyle = new TextStyle({
-        fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 9,
-        fill: FIBER_COLORS[key],
-      });
-      const valLabel = new Text({
-        text: String(Math.round(value)),
-        style: valStyle,
-      });
-      valLabel.anchor.set(0.5, 0);
-      valLabel.x = bx + BAR_WIDTH / 2;
-      valLabel.y = barBaseY + 4;
-      c.addChild(valLabel);
+      // Value label (skip on narrow screens to save space)
+      if (!this.isNarrow) {
+        const valStyle = new TextStyle({
+          fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
+          fontSize: 9,
+          fill: FIBER_COLORS[key],
+        });
+        const valLabel = new Text({
+          text: String(Math.round(value)),
+          style: valStyle,
+        });
+        valLabel.anchor.set(0.5, 0);
+        valLabel.x = bx + barWidth / 2;
+        valLabel.y = barBaseY + 4;
+        c.addChild(valLabel);
+      }
     });
 
     // Willpower total
     const wpStyle = new TextStyle({
       fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 12,
+      fontSize: this.isNarrow ? 9 : 12,
       fill: "#9ca3af",
     });
     const wpLabel = new Text({
@@ -288,21 +300,21 @@ export class SpiralAnimation extends Container {
       style: wpStyle,
     });
     wpLabel.anchor.set(0.5, 0);
-    wpLabel.x = DAY_PANEL_WIDTH / 2;
+    wpLabel.x = panelW / 2;
     wpLabel.y = 140;
     c.addChild(wpLabel);
 
     // Activity summary
     const skippedStr = state.activitiesSkipped.length > 0
-      ? state.activitiesSkipped.join(", ").slice(0, 30)
+      ? state.activitiesSkipped.join(", ").slice(0, this.isNarrow ? 15 : 30)
       : "";
 
     const actStyle = new TextStyle({
       fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 9,
+      fontSize: this.isNarrow ? 7 : 9,
       fill: "#6b7280",
       wordWrap: true,
-      wordWrapWidth: DAY_PANEL_WIDTH - 16,
+      wordWrapWidth: panelW - 16,
     });
 
     if (skippedStr) {

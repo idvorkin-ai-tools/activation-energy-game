@@ -106,10 +106,15 @@ export class DragToNumberLine extends Container {
 
   private createCards(): void {
     const { cards } = this.options;
-    const startY = LINE_Y - CARD_HEIGHT - 50;
-    const spacing = CARD_WIDTH + 12;
-    const totalWidth = cards.length * spacing - 12;
-    const startX = (this.options.width - totalWidth) / 2;
+    const isNarrow = this.options.width < 600;
+    const cardW = isNarrow ? 100 : CARD_WIDTH;
+    const cardH = CARD_HEIGHT;
+    const gap = isNarrow ? 8 : 12;
+    const spacing = cardW + gap;
+
+    // On narrow screens, use 2 rows: 3 cards on top, 2 on bottom
+    const topRowCount = isNarrow ? 3 : cards.length;
+    const startY = LINE_Y - cardH - (isNarrow ? 100 : 50);
 
     cards.forEach((card, index) => {
       const cardContainer = new Container();
@@ -117,29 +122,41 @@ export class DragToNumberLine extends Container {
 
       // Card background
       const bg = new Graphics();
-      bg.roundRect(0, 0, CARD_WIDTH, CARD_HEIGHT, CARD_RADIUS).fill(color);
+      bg.roundRect(0, 0, cardW, cardH, CARD_RADIUS).fill(color);
       bg.alpha = 0.9;
       cardContainer.addChild(bg);
 
       // Card label
       const labelStyle = new TextStyle({
         fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 13,
+        fontSize: isNarrow ? 11 : 13,
         fill: "#ffffff",
         fontWeight: "bold",
         wordWrap: true,
-        wordWrapWidth: CARD_WIDTH - 16,
+        wordWrapWidth: cardW - 16,
         align: "center",
       });
       const label = new Text({ text: card.label, style: labelStyle });
       label.anchor.set(0.5);
-      label.x = CARD_WIDTH / 2;
-      label.y = CARD_HEIGHT / 2;
+      label.x = cardW / 2;
+      label.y = cardH / 2;
       cardContainer.addChild(label);
 
       // Position stacked above the line
-      cardContainer.x = startX + index * spacing;
-      cardContainer.y = startY;
+      if (isNarrow) {
+        const row = index < topRowCount ? 0 : 1;
+        const colIndex = row === 0 ? index : index - topRowCount;
+        const colCount = row === 0 ? topRowCount : cards.length - topRowCount;
+        const rowTotalWidth = colCount * spacing - gap;
+        const rowStartX = (this.options.width - rowTotalWidth) / 2;
+        cardContainer.x = rowStartX + colIndex * spacing;
+        cardContainer.y = startY + row * (cardH + gap);
+      } else {
+        const totalWidth = cards.length * spacing - gap;
+        const startX = (this.options.width - totalWidth) / 2;
+        cardContainer.x = startX + index * spacing;
+        cardContainer.y = startY;
+      }
 
       // Make draggable
       cardContainer.eventMode = "static";
@@ -174,12 +191,12 @@ export class DragToNumberLine extends Container {
         cardContainer.cursor = "grab";
 
         // Snap to number line
-        const centerX = cardContainer.x + CARD_WIDTH / 2;
+        const centerX = cardContainer.x + cardW / 2;
         const snappedValue = Math.round(this.xToValue(centerX));
-        const snappedX = this.valueToX(snappedValue) - CARD_WIDTH / 2;
+        const snappedX = this.valueToX(snappedValue) - cardW / 2;
 
         cardContainer.x = snappedX;
-        cardContainer.y = LINE_Y - CARD_HEIGHT - 4;
+        cardContainer.y = LINE_Y - cardH - 4;
 
         this.placedCards.set(card.id, snappedValue);
 
@@ -195,12 +212,12 @@ export class DragToNumberLine extends Container {
         cardContainer.cursor = "grab";
 
         // Snap same as pointerup
-        const centerX = cardContainer.x + CARD_WIDTH / 2;
+        const centerX = cardContainer.x + cardW / 2;
         const snappedValue = Math.round(this.xToValue(centerX));
-        const snappedX = this.valueToX(snappedValue) - CARD_WIDTH / 2;
+        const snappedX = this.valueToX(snappedValue) - cardW / 2;
 
         cardContainer.x = snappedX;
-        cardContainer.y = LINE_Y - CARD_HEIGHT - 4;
+        cardContainer.y = LINE_Y - cardH - 4;
 
         this.placedCards.set(card.id, snappedValue);
 
@@ -217,6 +234,9 @@ export class DragToNumberLine extends Container {
   /** Animate all cards to their correct positions */
   async reveal(): Promise<void> {
     const { cards } = this.options;
+    const isNarrow = this.options.width < 600;
+    const cardW = isNarrow ? 100 : CARD_WIDTH;
+    const cardH = CARD_HEIGHT;
     const promises: Promise<void>[] = [];
 
     for (let i = 0; i < cards.length; i++) {
@@ -224,8 +244,8 @@ export class DragToNumberLine extends Container {
       const cardContainer = this.cardMap.get(card.id);
       if (!cardContainer) continue;
 
-      const targetX = this.valueToX(card.correctValue) - CARD_WIDTH / 2;
-      const targetY = LINE_Y - CARD_HEIGHT - 4;
+      const targetX = this.valueToX(card.correctValue) - cardW / 2;
+      const targetY = LINE_Y - cardH - 4;
 
       const p = new Promise<void>((resolve) => {
         setTimeout(() => {
