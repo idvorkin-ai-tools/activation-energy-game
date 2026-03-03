@@ -7,10 +7,102 @@ body {
   overflow: hidden;
   background: #1a1a2e;
 }
+
+/* Header */
+#header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 20px;
+  background: #16162a;
+  border-bottom: 1px solid #2a2a4a;
+}
+.header-title {
+  color: #e0e0ff;
+  font-family: system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+#about-link {
+  color: #8888cc;
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+}
+#about-link:hover {
+  color: #aaaaee;
+}
+
+/* Game container */
 #game {
   width: 100vw;
-  height: 100vh;
+  height: calc(100vh - 48px);
 }
 canvas {
   display: block;
+}
+
+/* About modal */
+#about-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+#about-modal.modal-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+.modal-card {
+  position: relative;
+  background: #1e1e3a;
+  border: 1px solid #3a3a5c;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 480px;
+  width: 90%;
+  color: #d0d0e8;
+  font-family: system-ui, sans-serif;
+  line-height: 1.6;
+}
+.modal-card h2 {
+  color: #e0e0ff;
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+.modal-card p {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.modal-card a {
+  color: #7b7bdd;
+}
+.modal-card a:hover {
+  color: #9b9bff;
+}
+#modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #8888aa;
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
+#modal-close:hover {
+  color: #ccccee;
 }
