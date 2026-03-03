@@ -5,6 +5,7 @@ import { Button } from "../engine/Button";
 import { FiberRope } from "../interactions/FiberRope";
 import { FIBER_KEYS, FIBER_COLORS } from "../sim/types";
 import { FiberModel } from "../sim/FiberModel";
+import { createSkipButton } from "../engine/SkipButton";
 import type { Game } from "../Game";
 
 export class Ch4_Fibers extends Scene {
@@ -90,15 +91,30 @@ export class Ch4_Fibers extends Scene {
     });
     this.container.addChild(rope);
 
-    // Wait for player to click at least 2 holders
-    await new Promise<void>((resolve) => {
-      const checkInterval = setInterval(() => {
-        if (rope.getReleasedCount() >= 2) {
-          clearInterval(checkInterval);
+    // Wait for player to click at least 2 holders (or skip after 8s)
+    let fiberResolve: () => void;
+    let fiberResolved = false;
+    const fiberPromise = new Promise<void>((resolve) => {
+      fiberResolve = () => {
+        if (!fiberResolved) {
+          fiberResolved = true;
           resolve();
         }
-      }, 300);
+      };
     });
+
+    const checkInterval = setInterval(() => {
+      if (rope.getReleasedCount() >= 2) {
+        clearInterval(checkInterval);
+        fiberResolve();
+      }
+    }, 300);
+
+    const cleanupSkip = createSkipButton(this.container, w, h, fiberResolve!);
+
+    await fiberPromise;
+    clearInterval(checkInterval);
+    cleanupSkip();
 
     await this.delay(800);
 

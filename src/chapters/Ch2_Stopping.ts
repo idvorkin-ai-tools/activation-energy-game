@@ -3,6 +3,7 @@ import { Scene } from "../engine/Scene";
 import { TextBox } from "../engine/TextBox";
 import { Button } from "../engine/Button";
 import { TimelineScrubber } from "../interactions/TimelineScrubber";
+import { createSkipButton } from "../engine/SkipButton";
 import type { Game } from "../Game";
 
 function delay(ms: number): Promise<void> {
@@ -77,39 +78,52 @@ export class Ch2_Stopping extends Scene {
     const scrubberX = (this.width - scrubberWidth) / 2;
     const scrubberY = this.height * 0.22;
 
+    let interactResolve: () => void;
+    let interactResolved = false;
     const interactPromise = new Promise<void>((resolve) => {
-      const scrubber = new TimelineScrubber({
-        x: scrubberX,
-        y: scrubberY,
-        width: scrubberWidth,
-        height: scrubberHeight,
-        curves: [
-          {
-            label: "Movie",
-            color: "#60a5fa",
-            getStoppingEnergy: movieStoppingEnergy,
-          },
-          {
-            label: "TikTok",
-            color: "#f87171",
-            getStoppingEnergy: tiktokStoppingEnergy,
-          },
-        ],
-        maxTimeMinutes: 150,
-      });
-      this.container.addChild(scrubber);
-
-      scrubber.onInteract = () => {
-        // Wait a few seconds of interaction, then resolve
-        setTimeout(() => resolve(), 3000);
+      interactResolve = () => {
+        if (!interactResolved) {
+          interactResolved = true;
+          resolve();
+        }
       };
     });
+
+    const scrubber = new TimelineScrubber({
+      x: scrubberX,
+      y: scrubberY,
+      width: scrubberWidth,
+      height: scrubberHeight,
+      curves: [
+        {
+          label: "Movie",
+          color: "#60a5fa",
+          getStoppingEnergy: movieStoppingEnergy,
+        },
+        {
+          label: "TikTok",
+          color: "#f87171",
+          getStoppingEnergy: tiktokStoppingEnergy,
+        },
+      ],
+      maxTimeMinutes: 150,
+    });
+    this.container.addChild(scrubber);
+
+    scrubber.onInteract = () => {
+      // Wait a few seconds of interaction, then resolve
+      setTimeout(() => interactResolve(), 3000);
+    };
 
     textBox.setText("Drag the timeline. Watch what happens.");
     await textBox.show();
 
-    // Wait for user to interact
+    // Skip button appears after 8s, resolves the interaction gate
+    const cleanupSkip = createSkipButton(this.container, this.width, this.height, interactResolve!);
+
+    // Wait for user to interact (or skip)
     await interactPromise;
+    cleanupSkip();
 
     // Move text to lower area for commentary
     textBox.y = this.height * 0.65;

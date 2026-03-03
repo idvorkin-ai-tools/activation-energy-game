@@ -5,6 +5,7 @@ import { Button } from "../engine/Button";
 import { DayTimeline } from "../interactions/DayTimeline";
 import { getActivityById } from "../sim/activities";
 import type { Activity } from "../sim/types";
+import { createSkipButton } from "../engine/SkipButton";
 import type { Game } from "../Game";
 
 export class Ch3_Day extends Scene {
@@ -84,9 +85,23 @@ export class Ch3_Day extends Scene {
 
     // ─── After First Play ────────────────────────────────────
 
-    await new Promise<void>((resolve) => {
-      timeline.onFirstPlayComplete = resolve;
+    let playResolve: () => void;
+    let playResolved = false;
+    const playPromise = new Promise<void>((resolve) => {
+      playResolve = () => {
+        if (!playResolved) {
+          playResolved = true;
+          resolve();
+        }
+      };
     });
+    timeline.onFirstPlayComplete = playResolve!;
+
+    // Skip button appears after 8s, resolves the play-complete gate
+    const cleanupSkip = createSkipButton(this.container, w, h, playResolve!);
+
+    await playPromise;
+    cleanupSkip();
 
     instructionText.hide();
 

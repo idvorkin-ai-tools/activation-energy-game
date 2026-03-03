@@ -3,6 +3,7 @@ import { Scene } from "../engine/Scene";
 import { TextBox } from "../engine/TextBox";
 import { Button } from "../engine/Button";
 import { DragToNumberLine } from "../interactions/DragToNumberLine";
+import { createSkipButton } from "../engine/SkipButton";
 import type { Game } from "../Game";
 
 function delay(ms: number): Promise<void> {
@@ -48,44 +49,47 @@ export class Ch1_Starting extends Scene {
     const lineWidth = Math.min(this.width - 120, 800);
     const lineX = (this.width - lineWidth) / 2;
 
+    let allPlacedResolve: () => void;
     const allPlacedPromise = new Promise<void>((resolve) => {
-      const numberLine = new DragToNumberLine({
-        x: lineX,
-        y: this.height * 0.3,
-        width: lineWidth,
-        minValue: -60,
-        maxValue: 100,
-        cards: [
-          { id: "tiktok", label: "TikTok", icon: "phone", correctValue: -50 },
-          { id: "going-to-work", label: "Going to Work", icon: "briefcase", correctValue: -10 },
-          { id: "existing-habit", label: "Existing Habit", icon: "repeat", correctValue: 5 },
-          { id: "meditating", label: "Meditating", icon: "lotus", correctValue: 20 },
-          {
-            id: "the-thing",
-            label: "The Thing You've\nBeen Avoiding",
-            icon: "mountain",
-            correctValue: 80,
-          },
-        ],
-        onAllPlaced: () => {
-          resolve();
-        },
-      });
-      this.container.addChild(numberLine);
-
-      // Store reference so we can call reveal() later
-      (this as unknown as { _numberLine: DragToNumberLine })._numberLine = numberLine;
+      allPlacedResolve = resolve;
     });
+
+    const numberLine = new DragToNumberLine({
+      x: lineX,
+      y: this.height * 0.3,
+      width: lineWidth,
+      minValue: -60,
+      maxValue: 100,
+      cards: [
+        { id: "tiktok", label: "TikTok", icon: "phone", correctValue: -50 },
+        { id: "going-to-work", label: "Going to Work", icon: "briefcase", correctValue: -10 },
+        { id: "existing-habit", label: "Existing Habit", icon: "repeat", correctValue: 5 },
+        { id: "meditating", label: "Meditating", icon: "lotus", correctValue: 20 },
+        {
+          id: "the-thing",
+          label: "The Thing You've\nBeen Avoiding",
+          icon: "mountain",
+          correctValue: 80,
+        },
+      ],
+      onAllPlaced: () => {
+        allPlacedResolve();
+      },
+    });
+    this.container.addChild(numberLine);
 
     textBox.setText("Go ahead. Where do you think each one goes?");
     await textBox.show();
 
-    // Wait for user to place all cards
+    // Skip button appears after 8s, resolves the interaction gate
+    const cleanupSkip = createSkipButton(this.container, this.width, this.height, allPlacedResolve!);
+
+    // Wait for user to place all cards (or skip)
     await allPlacedPromise;
+    cleanupSkip();
     await delay(500);
 
     // Reveal correct positions
-    const numberLine = (this as unknown as { _numberLine: DragToNumberLine })._numberLine;
     await numberLine.reveal();
     await delay(800);
 

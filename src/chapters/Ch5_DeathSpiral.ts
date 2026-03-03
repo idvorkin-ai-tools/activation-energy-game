@@ -3,6 +3,7 @@ import { Scene } from "../engine/Scene";
 import { TextBox } from "../engine/TextBox";
 import { Button } from "../engine/Button";
 import { SpiralAnimation } from "../interactions/SpiralAnimation";
+import { createSkipButton } from "../engine/SkipButton";
 import type { Game } from "../Game";
 
 export class Ch5_DeathSpiral extends Scene {
@@ -44,10 +45,21 @@ export class Ch5_DeathSpiral extends Scene {
     });
     this.container.addChild(spiral);
 
-    // Wait for the spiral play to complete
-    await new Promise<void>((resolve) => {
-      spiral.onPlayComplete = resolve;
+    // Wait for the spiral play to complete (or skip after 8s)
+    let playResolve: () => void;
+    let playResolved = false;
+    const playPromise = new Promise<void>((resolve) => {
+      playResolve = () => {
+        if (!playResolved) {
+          playResolved = true;
+          resolve();
+        }
+      };
     });
+    spiral.onPlayComplete = playResolve!;
+    const cleanupPlaySkip = createSkipButton(this.container, w, h, playResolve!);
+    await playPromise;
+    cleanupPlaySkip();
 
     await this.delay(800);
 
@@ -76,10 +88,21 @@ export class Ch5_DeathSpiral extends Scene {
     this.container.addChild(text3);
     await text3.show();
 
-    // Wait for intervention playback
-    await new Promise<void>((resolve) => {
-      spiral.onRewindComplete = resolve;
+    // Wait for intervention playback (or skip after 8s)
+    let rewindResolve: () => void;
+    let rewindResolved = false;
+    const rewindPromise = new Promise<void>((resolve) => {
+      rewindResolve = () => {
+        if (!rewindResolved) {
+          rewindResolved = true;
+          resolve();
+        }
+      };
     });
+    spiral.onRewindComplete = rewindResolve!;
+    const cleanupRewindSkip = createSkipButton(this.container, w, h, rewindResolve!);
+    await rewindPromise;
+    cleanupRewindSkip();
 
     text3.hide();
 
