@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raccoon Character Style Playground</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; color: #e0e0e0; font-family: system-ui, sans-serif; padding: 20px; }
+  h1 { text-align: center; margin-bottom: 8px; font-size: 1.5rem; }
+  .subtitle { text-align: center; color: #94a3b8; margin-bottom: 24px; }
+  .styles { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+  .style-card {
+    background: #16213e;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    min-width: 280px;
+  }
+  .style-card h2 { font-size: 1.1rem; margin-bottom: 4px; }
+  .style-card .tag { font-size: 0.8rem; color: #94a3b8; margin-bottom: 12px; }
+  .expressions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px;
+  }
+  .expr-box {
+    background: #0f3460;
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .expr-box canvas { border-radius: 4px; }
+  .expr-box span { font-size: 0.7rem; color: #94a3b8; }
+  .controls { text-align: center; margin-top: 16px; }
+  .controls button {
+    background: #0f3460; border: 1px solid #334155; color: #e0e0e0;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; margin: 0 4px;
+    font-size: 0.85rem;
+  }
+  .controls button:hover { background: #1e40af; }
+  .walk-canvas { margin-top: 12px; border-radius: 8px; background: #0a0a1a; }
+</style>
+</head>
+<body>
+<h1>Raccoon Character Styles</h1>
+<p class="subtitle">Compare three procedural Canvas 2D raccoon designs</p>
+
+<div class="styles" id="styles"></div>
+
+<script>
+// Shared palette
+const PAL = {
+  fur: '#8B8680',
+  belly: '#C4BAB0',
+  mask: '#2C2420',
+  nose: '#1A1614',
+  earInner: '#C4A08A',
+  eye: '#1A1A2E',
+  eyeWhite: '#FFFFFF',
+  tailDark: '#2C2420',
+  tailLight: '#8B8680',
+  whisker: '#D4CCC4',
+};
+
+const EXPR_ACCENTS = {
+  happy:     { color: '#E8A0A0', label: 'happy' },
+  neutral:   { color: null,      label: 'neutral' },
+  tired:     { color: '#7888A0', label: 'tired' },
+  stressed:  { color: '#FBBF24', label: 'stressed' },
+  desperate: { color: '#EF4444', label: 'desperate' },
+  energized: { color: '#22D3EE', label: 'energized' },
+};
+
+const EXPR_PARAMS = {
+  happy:     { mouthCurve: 0.8, eyeScale: 1.2, browOffset: 1 },
+  neutral:   { mouthCurve: 0, eyeScale: 1.0, browOffset: 0 },
+  tired:     { mouthCurve: -0.3, eyeScale: 0.6, browOffset: -1 },
+  stressed:  { mouthCurve: -0.5, eyeScale: 1.3, browOffset: -2 },
+  desperate: { mouthCurve: -0.8, eyeScale: 1.5, browOffset: -3 },
+  energized: { mouthCurve: 1.0, eyeScale: 1.3, browOffset: 2 },
+};
+
+const EXPRESSIONS = Object.keys(EXPR_PARAMS);
+
+// ─── STYLE A: Minimal / Geometric ───
+function drawStyleA(ctx, w, h, expr) {
+  const p = EXPR_PARAMS[expr];
+  const cx = w / 2, cy = h / 2;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(cx, cy + 2);
+
+  // Body: rounded rect
+  const bw = 22, bh = 30, br = 10;
+  ctx.beginPath();
+  ctx.roundRect(-bw, -bh + 6, bw * 2, bh * 2, br);
+  ctx.fillStyle = PAL.fur;
+  ctx.fill();
+  ctx.strokeStyle = PAL.mask;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Belly stripe
+  ctx.beginPath();
+  ctx.roundRect(-bw + 5, -bh + 18, (bw - 5) * 2, bh * 2 - 24, br - 2);
+  ctx.fillStyle = PAL.belly;
+  ctx.fill();
+
+  // Ears: triangles
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * 12, -bh + 4);
+    ctx.lineTo(side * 18, -bh - 10);
+    ctx.lineTo(side * 6, -bh + 4);
+    ctx.closePath();
+    ctx.fillStyle = PAL.fur;
+    ctx.fill();
+    ctx.strokeStyle = PAL.mask;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    // inner ear
+    ctx.beginPath();
+    ctx.moveTo(side * 12, -bh + 6);
+    ctx.lineTo(side * 16, -bh - 6);
+    ctx.lineTo(side * 8, -bh + 6);
+    ctx.closePath();
+    ctx.fillStyle = PAL.earInner;
+    ctx.fill();
+  }
+
+  // Mask band
+  const maskY = -12;
+  ctx.beginPath();
+  ctx.roundRect(-bw + 1, maskY - 5, (bw - 1) * 2, 12, 3);
+  ctx.fillStyle = PAL.mask;
+  ctx.fill();
+
+  // Eyes inside mask
+  const eyeSpacing = 8;
+  const eyeR = 3 * p.eyeScale;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(side * eyeSpacing, maskY + 1, eyeR, 0, Math.PI * 2);
+    ctx.fillStyle = PAL.eyeWhite;
+    ctx.fill();
+    // pupil
+    ctx.beginPath();
+    ctx.arc(side * eyeSpacing, maskY + 1, eyeR * 0.5, 0, Math.PI * 2);
+    ctx.fillStyle = PAL.eye;
+    ctx.fill();
+  }
+
+  // Eyebrows on mask (white so visible)
+  const browY = maskY - 5 + p.browOffset;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * eyeSpacing - side * 4, browY);
+    ctx.lineTo(side * eyeSpacing + side * 4, browY - p.browOffset * 0.3);
+    ctx.strokeStyle = PAL.eyeWhite;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Nose
+  ctx.beginPath();
+  ctx.moveTo(0, maskY + 8);
+  ctx.lineTo(-3, maskY + 12);
+  ctx.lineTo(3, maskY + 12);
+  ctx.closePath();
+  ctx.fillStyle = PAL.nose;
+  ctx.fill();
+
+  // Mouth
+  ctx.beginPath();
+  ctx.moveTo(-5, maskY + 15);
+  ctx.quadraticCurveTo(0, maskY + 15 + p.mouthCurve * -6, 5, maskY + 15);
+  ctx.strokeStyle = PAL.eyeWhite;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Legs
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.roundRect(side * 5, bh - 2, 7, 8, [0, 0, 3, 3]);
+    ctx.fillStyle = PAL.mask;
+    ctx.fill();
+  }
+
+  // Tail: striped curved line
+  ctx.beginPath();
+  ctx.moveTo(16, 18);
+  ctx.quadraticCurveTo(30, 0, 22, -18);
+  ctx.strokeStyle = PAL.tailDark;
+  ctx.lineWidth = 6;
+  ctx.setLineDash([5, 5]);
+  ctx.stroke();
+  ctx.strokeStyle = PAL.tailLight;
+  ctx.lineWidth = 4;
+  ctx.lineDashOffset = 5;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
+
+  // Expression accents
+  const accent = EXPR_ACCENTS[expr];
+  if (expr === 'happy') {
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(side * 12, maskY + 10, 3, 0, Math.PI * 2);
+      ctx.fillStyle = accent.color;
+      ctx.globalAlpha = 0.6;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  } else if (expr === 'stressed') {
+    // sweat drop
+    ctx.beginPath();
+    ctx.moveTo(14, -bh - 4);
+    ctx.quadraticCurveTo(17, -bh + 2, 14, -bh + 4);
+    ctx.quadraticCurveTo(11, -bh + 2, 14, -bh - 4);
+    ctx.fillStyle = '#93C5FD';
+    ctx.fill();
+  } else if (expr === 'desperate') {
+    // sweat + distress lines
+    ctx.beginPath();
+    ctx.moveTo(14, -bh - 4);
+    ctx.quadraticCurveTo(17, -bh + 2, 14, -bh + 4);
+    ctx.quadraticCurveTo(11, -bh + 2, 14, -bh - 4);
+    ctx.fillStyle = '#93C5FD';
+    ctx.fill();
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-bw - 3, -10 + i * 8);
+      ctx.lineTo(-bw - 8, -10 + i * 8);
+      ctx.strokeStyle = accent.color;
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  } else if (expr === 'energized') {
+    // sparkles
+    for (const [sx, sy] of [[-18, -20], [20, -16], [-16, 14], [22, 10]]) {
+      drawDiamond(ctx, sx, sy, 3, accent.color);
+    }
+  }
+
+  ctx.restore();
+}
+
+// ─── STYLE B: Cute / Chibi ───
+function drawStyleB(ctx, w, h, expr) {
+  const p = EXPR_PARAMS[expr];
+  const cx = w / 2, cy = h / 2;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(cx, cy + 4);
+
+  // Body oval
+  ctx.beginPath();
+  ctx.ellipse(0, 16, 15, 18, 0, 0, Math.PI * 2);
+  ctx.fillStyle = PAL.fur;
+  ctx.fill();
+
+  // Belly
+  ctx.beginPath();
+  ctx.ellipse(0, 18, 10, 13, 0, 0, Math.PI * 2);
+  ctx.fillStyle = PAL.belly;
+  ctx.fill();
+
+  // Tail: overlapping ovals
+  const tailPts = [];
+  for (let i = 0; i < 6; i++) {
+    const t = i / 5;
+    const tx = 14 + t * 14;
+    const ty = 20 - t * 35;
+    tailPts.push({ x: tx, y: ty, dark: i % 2 === 0 });
+  }
+  for (const tp of tailPts) {
+    ctx.beginPath();
+    ctx.ellipse(tp.x, tp.y, 6, 5, 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = tp.dark ? PAL.tailDark : PAL.tailLight;
+    ctx.fill();
+  }
+
+  // Paws
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(side * 12, 14, 4, 4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = PAL.mask;
+    ctx.fill();
+  }
+
+  // Feet
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(side * 7, 34, 5, 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = PAL.mask;
+    ctx.fill();
+  }
+
+  // Head circle
+  ctx.beginPath();
+  ctx.arc(0, -10, 19, 0, Math.PI * 2);
+  ctx.fillStyle = PAL.fur;
+  ctx.fill();
+
+  // Ears
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(side * 14, -25, 7, 0, Math.PI * 2);
+    ctx.fillStyle = PAL.fur;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(side * 14, -25, 4, 0, Math.PI * 2);
+    ctx.fillStyle = PAL.earInner;
+    ctx.fill();
+  }
+
+  // Mask patches (teardrop shapes around eyes)
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(side * 7, -11, 8, 6, side * 0.15, 0, Math.PI * 2);
+    ctx.fillStyle = PAL.mask;
+    ctx.fill();
+  }
+  // Light bridge between patches
+  ctx.beginPath();
+  ctx.ellipse(0, -12, 3, 5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = PAL.fur;
+  ctx.fill();
+
+  // Eyes
+  const eyeSpacing = 7;
+  const eyeY = -11;
+  if (expr === 'happy') {
+    // Happy closed eyes (arcs)
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(side * eyeSpacing, eyeY, 4, Math.PI * 0.1, Math.PI * 0.9);
+      ctx.strokeStyle = PAL.eyeWhite;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  } else {
+    const eR = 4 * p.eyeScale;
+    for (const side of [-1, 1]) {
+      // sclera
+      ctx.beginPath();
+      ctx.arc(side * eyeSpacing, eyeY, eR, 0, Math.PI * 2);
+      ctx.fillStyle = PAL.eyeWhite;
+      ctx.fill();
+      // iris
+      ctx.beginPath();
+      ctx.arc(side * eyeSpacing, eyeY, eR * 0.55, 0, Math.PI * 2);
+      ctx.fillStyle = PAL.eye;
+      ctx.fill();
+      // shine dot
+      if (expr === 'energized') {
+        drawStar(ctx, side * eyeSpacing + 1.5, eyeY - 1.5, 2, 4, PAL.eyeWhite);
+      } else {
+        ctx.beginPath();
+        ctx.arc(side * eyeSpacing + 1.5, eyeY - 1.5, 1.2, 0, Math.PI * 2);
+        ctx.fillStyle = PAL.eyeWhite;
+        ctx.fill();
+      }
+      // tired: eyelid
+      if (expr === 'tired') {
+        ctx.beginPath();
+        ctx.moveTo(side * eyeSpacing - eR, eyeY - 1);
+        ctx.lineTo(side * eyeSpacing + eR, eyeY - 1);
+        ctx.lineTo(side * eyeSpacing + eR, eyeY - eR);
+        ctx.arc(side * eyeSpacing, eyeY, eR, -Math.PI * 0.05, -Math.PI * 0.95, true);
+        ctx.fillStyle = PAL.mask;
+        ctx.fill();
+      }
+    }
+  }
+
+  // Nose
+  ctx.beginPath();
+  ctx.ellipse(0, -4, 2.5, 2, 0, 0, Math.PI * 2);
+  ctx.fillStyle = PAL.nose;
+  ctx.fill();
+
+  // Whiskers
+  for (const side of [-1, 1]) {
+    for (const angle of [-0.2, 0.2]) {
+      ctx.beginPath();
+      ctx.moveTo(side * 3, -3);
+      ctx.lineTo(side * 14, -3 + angle * 20);
+      ctx.strokeStyle = PAL.whisker;
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+    }
+  }
+
+  // Mouth
+  if (expr === 'happy') {
+    // w-shaped mouth
+    ctx.beginPath();
+    ctx.moveTo(-4, -1);
+    ctx.quadraticCurveTo(-2, 3, 0, 0);
+    ctx.quadraticCurveTo(2, 3, 4, -1);
+    ctx.strokeStyle = PAL.nose;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  } else if (expr === 'desperate') {
+    // open O
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 3, 4, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = PAL.nose;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(-4, 0);
+    ctx.quadraticCurveTo(0, p.mouthCurve * -5, 4, 0);
+    ctx.strokeStyle = PAL.nose;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
+
+  // Cheek blush
+  if (expr === 'happy' || expr === 'energized') {
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(side * 13, -6, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = EXPR_ACCENTS[expr].color;
+      ctx.globalAlpha = 0.45;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Desperate extras
+  if (expr === 'desperate') {
+    // teardrop
+    ctx.beginPath();
+    ctx.moveTo(10, -13);
+    ctx.quadraticCurveTo(13, -8, 10, -6);
+    ctx.quadraticCurveTo(7, -8, 10, -13);
+    ctx.fillStyle = '#93C5FD';
+    ctx.fill();
+    // distress lines
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-8 + i * 8, -34);
+      ctx.lineTo(-5 + i * 8, -38);
+      ctx.strokeStyle = PAL.mask;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+// ─── STYLE C: Mischievous / Playful ───
+function drawStyleC(ctx, w, h, expr) {
+  const p = EXPR_PARAMS[expr];
+  const cx = w / 2, cy = h / 2;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(cx - 4, cy + 4);
+
+  // Lean offset per expression
+  const lean = expr === 'tired' ? 4 : expr === 'energized' ? -2 : 2;
+
+  // Tail: S-curve, drawn first (behind body)
+  const tailDroop = expr === 'tired' ? 10 : expr === 'desperate' ? 8 : 0;
+  const tailCurl = expr === 'energized' ? -25 : expr === 'tired' ? -5 : -15;
+  ctx.save();
+  // Draw tapered tail as polygon
+  const tailSegs = 20;
+  const topPts = [], botPts = [];
+  for (let i = 0; i <= tailSegs; i++) {
+    const t = i / tailSegs;
+    const baseW = 4 * (1 - t * 0.6);
+    // S-curve
+    const tx = 14 + t * 18;
+    const ty = 22 + tailDroop * t - t * 40 + Math.sin(t * Math.PI) * tailCurl * 0.3;
+    const nx = -Math.cos(t * 1.5);
+    const ny = Math.sin(t * 1.5);
+    topPts.push({ x: tx + ny * baseW, y: ty - nx * baseW });
+    botPts.push({ x: tx - ny * baseW, y: ty + nx * baseW });
+  }
+  // Alternate stripe segments
+  for (let seg = 0; seg < tailSegs; seg++) {
+    const dark = Math.floor(seg / 3) % 2 === 0;
+    ctx.beginPath();
+    ctx.moveTo(topPts[seg].x, topPts[seg].y);
+    ctx.lineTo(topPts[seg + 1].x, topPts[seg + 1].y);
+    ctx.lineTo(botPts[seg + 1].x, botPts[seg + 1].y);
+    ctx.lineTo(botPts[seg].x, botPts[seg].y);
+    ctx.closePath();
+    ctx.fillStyle = dark ? PAL.tailDark : PAL.tailLight;
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Legs
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(lean + side * 4, 28);
+    ctx.lineTo(lean + side * 6, 36);
+    ctx.lineTo(lean + side * 12, 36);
+    ctx.lineTo(lean + side * 8, 28);
+    ctx.closePath();
+    ctx.fillStyle = PAL.fur;
+    ctx.fill();
+    // dark paw
+    ctx.beginPath();
+    ctx.roundRect(lean + side * 5, 33, 8, 4, 2);
+    ctx.fillStyle = PAL.mask;
+    ctx.fill();
+  }
+
+  // Lower body (pear shape)
+  ctx.beginPath();
+  ctx.arc(lean * 0.5, 18, 16, 0, Math.PI * 2);
+  ctx.fillStyle = PAL.fur;
+  ctx.fill();
+
+  // Upper body
+  ctx.beginPath();
+  ctx.arc(lean, 2, 13, 0, Math.PI * 2);
+  ctx.fillStyle = PAL.fur;
+  ctx.fill();
+
+  // Belly
+  ctx.beginPath();
+  ctx.ellipse(lean * 0.5, 14, 10, 14, 0, 0, Math.PI * 2);
+  ctx.fillStyle = PAL.belly;
+  ctx.fill();
+
+  // Arms
+  for (const side of [-1, 1]) {
+    const armAngle = side === 1 ? 0.4 : -0.2;
+    ctx.beginPath();
+    ctx.moveTo(lean + side * 12, 4);
+    ctx.quadraticCurveTo(lean + side * 18, 10 + armAngle * 10, lean + side * 16, 18);
+    ctx.strokeStyle = PAL.fur;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    // paw
+    ctx.beginPath();
+    ctx.arc(lean + side * 16, 18, 3, 0, Math.PI * 2);
+    ctx.fillStyle = PAL.mask;
+    ctx.fill();
+  }
+
+  // Head (horizontally elongated)
+  ctx.beginPath();
+  ctx.ellipse(lean, -14, 17, 15, 0, 0, Math.PI * 2);
+  ctx.fillStyle = PAL.fur;
+  ctx.fill();
+
+  // Ears: swept-back pointed
+  for (const side of [-1, 1]) {
+    const earH = side === 1 ? 12 : 11; // asymmetric
+    ctx.beginPath();
+    ctx.moveTo(lean + side * 10, -26);
+    ctx.lineTo(lean + side * 16, -26 - earH);
+    ctx.lineTo(lean + side * 18, -24);
+    ctx.lineTo(lean + side * 13, -22);
+    ctx.closePath();
+    // flatten ears when stressed/desperate
+    if (expr === 'stressed' || expr === 'desperate') {
+      ctx.save();
+      ctx.translate(lean + side * 14, -24);
+      ctx.scale(1.2, 0.6);
+      ctx.translate(-(lean + side * 14), 24);
+    }
+    ctx.fillStyle = PAL.fur;
+    ctx.fill();
+    // inner ear
+    ctx.beginPath();
+    ctx.moveTo(lean + side * 12, -25);
+    ctx.lineTo(lean + side * 15, -25 - earH * 0.6);
+    ctx.lineTo(lean + side * 16, -24);
+    ctx.closePath();
+    ctx.fillStyle = PAL.earInner;
+    ctx.fill();
+    if (expr === 'stressed' || expr === 'desperate') ctx.restore();
+  }
+
+  // Bandit mask: bezier butterfly shape
+  ctx.beginPath();
+  ctx.moveTo(lean - 17, -16);
+  ctx.quadraticCurveTo(lean - 10, -18, lean - 3, -14);
+  ctx.quadraticCurveTo(lean, -12, lean + 3, -14);
+  ctx.quadraticCurveTo(lean + 10, -18, lean + 17, -16);
+  ctx.quadraticCurveTo(lean + 12, -10, lean + 3, -12);
+  ctx.quadraticCurveTo(lean, -10, lean - 3, -12);
+  ctx.quadraticCurveTo(lean - 12, -10, lean - 17, -16);
+  ctx.closePath();
+  ctx.fillStyle = PAL.mask;
+  ctx.fill();
+
+  // Eyes: narrow angled ovals
+  const eyeY = -14;
+  const eyeSpacing = 7;
+  // Asymmetric eyes (right slightly more open) except when stressed (symmetric)
+  for (const side of [-1, 1]) {
+    const asymScale = (expr === 'stressed' || expr === 'desperate') ? 1 :
+                       side === 1 ? 1.1 : 0.9;
+    const eRx = 4 * p.eyeScale * asymScale;
+    const eRy = 3 * p.eyeScale * asymScale;
+    ctx.beginPath();
+    ctx.ellipse(lean + side * eyeSpacing, eyeY, eRx, eRy, side * 0.1, 0, Math.PI * 2);
+    ctx.fillStyle = PAL.eyeWhite;
+    ctx.fill();
+    // pupil
+    const pupilR = expr === 'stressed' ? 1.2 : expr === 'energized' ? 2.5 : 2;
+    ctx.beginPath();
+    ctx.arc(lean + side * eyeSpacing, eyeY, pupilR, 0, Math.PI * 2);
+    ctx.fillStyle = PAL.eye;
+    ctx.fill();
+    // shine
+    ctx.beginPath();
+    ctx.arc(lean + side * eyeSpacing + 1, eyeY - 1, 0.8, 0, Math.PI * 2);
+    ctx.fillStyle = PAL.eyeWhite;
+    ctx.fill();
+  }
+
+  // Nose
+  ctx.beginPath();
+  ctx.ellipse(lean + 1, -8, 2.5, 2, 0, 0, Math.PI * 2);
+  ctx.fillStyle = PAL.nose;
+  ctx.fill();
+
+  // Mouth: smirk (asymmetric)
+  ctx.beginPath();
+  if (expr === 'happy') {
+    ctx.moveTo(lean - 5, -5);
+    ctx.quadraticCurveTo(lean, -5 + p.mouthCurve * -6, lean + 6, -6);
+    ctx.strokeStyle = PAL.nose;
+    ctx.lineWidth = 2;
+  } else if (expr === 'desperate') {
+    ctx.moveTo(lean - 4, -4);
+    ctx.lineTo(lean - 2, -3);
+    ctx.lineTo(lean + 1, -5);
+    ctx.lineTo(lean + 3, -3);
+    ctx.lineTo(lean + 5, -5);
+    ctx.strokeStyle = PAL.nose;
+    ctx.lineWidth = 1.5;
+  } else {
+    ctx.moveTo(lean - 4, -5);
+    ctx.quadraticCurveTo(lean + 1, -5 + p.mouthCurve * -5, lean + 5, -5.5);
+    ctx.strokeStyle = PAL.nose;
+    ctx.lineWidth = 1.5;
+  }
+  ctx.stroke();
+
+  // Expression extras
+  if (expr === 'desperate') {
+    // sweat
+    ctx.beginPath();
+    ctx.moveTo(lean + 14, -22);
+    ctx.quadraticCurveTo(lean + 17, -17, lean + 14, -15);
+    ctx.quadraticCurveTo(lean + 11, -17, lean + 14, -22);
+    ctx.fillStyle = '#93C5FD';
+    ctx.fill();
+    // motion lines
+    ctx.globalAlpha = 0.5;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-24, -8 + i * 10);
+      ctx.lineTo(-30, -8 + i * 10);
+      ctx.strokeStyle = '#94A3B8';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  } else if (expr === 'energized') {
+    for (const [sx, sy] of [[-20, -24], [22, -20], [-18, 16], [24, 12]]) {
+      drawDiamond(ctx, sx, sy, 3, EXPR_ACCENTS.energized.color);
+    }
+  }
+
+  ctx.restore();
+}
+
+// ─── Helpers ───
+function drawDiamond(ctx, x, y, size, color) {
+  ctx.beginPath();
+  ctx.moveTo(x, y - size);
+  ctx.lineTo(x + size * 0.6, y);
+  ctx.lineTo(x, y + size);
+  ctx.lineTo(x - size * 0.6, y);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function drawStar(ctx, x, y, r, points, color) {
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const angle = (i * Math.PI) / points - Math.PI / 2;
+    const radius = i % 2 === 0 ? r : r * 0.4;
+    const px = x + Math.cos(angle) * radius;
+    const py = y + Math.sin(angle) * radius;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+// ─── Build UI ───
+const styles = [
+  { name: 'Style A: Minimal / Geometric', tag: 'Nicky Case aesthetic — bold, flat, simple', draw: drawStyleA, canvasSize: 80 },
+  { name: 'Style B: Cute / Chibi', tag: 'Animal Crossing vibes — round, expressive', draw: drawStyleB, canvasSize: 90 },
+  { name: 'Style C: Mischievous / Playful', tag: 'Sly Cooper-lite — personality, dynamic pose', draw: drawStyleC, canvasSize: 100 },
+];
+
+const container = document.getElementById('styles');
+
+for (const style of styles) {
+  const card = document.createElement('div');
+  card.className = 'style-card';
+  card.innerHTML = `<h2>${style.name}</h2><div class="tag">${style.tag}</div>`;
+
+  const expRow = document.createElement('div');
+  expRow.className = 'expressions';
+
+  for (const expr of EXPRESSIONS) {
+    const box = document.createElement('div');
+    box.className = 'expr-box';
+
+    const canvas = document.createElement('canvas');
+    const s = style.canvasSize;
+    canvas.width = s;
+    canvas.height = s;
+    canvas.style.width = s + 'px';
+    canvas.style.height = s + 'px';
+
+    const ctxCanvas = canvas.getContext('2d');
+    style.draw(ctxCanvas, s, s, expr);
+
+    const label = document.createElement('span');
+    label.textContent = expr;
+
+    box.appendChild(canvas);
+    box.appendChild(label);
+    expRow.appendChild(box);
+  }
+
+  card.appendChild(expRow);
+
+  // Walk animation demo
+  const walkCanvas = document.createElement('canvas');
+  walkCanvas.className = 'walk-canvas';
+  walkCanvas.width = 280;
+  walkCanvas.height = style.canvasSize;
+  walkCanvas.style.width = '280px';
+  walkCanvas.style.height = style.canvasSize + 'px';
+  card.appendChild(walkCanvas);
+
+  const walkCtx = walkCanvas.getContext('2d');
+  let walkX = 30;
+  let walkDir = 1;
+  const walkSize = style.canvasSize * 0.7;
+
+  function animateWalk() {
+    walkCtx.clearRect(0, 0, 280, style.canvasSize);
+    walkCtx.save();
+    walkCtx.translate(walkX - walkSize / 2, (style.canvasSize - walkSize) / 2);
+    // Draw at smaller scale
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = style.canvasSize;
+    tmpCanvas.height = style.canvasSize;
+    const tmpCtx = tmpCanvas.getContext('2d');
+    const bounce = Math.sin(Date.now() / 150) * 2;
+    style.draw(tmpCtx, style.canvasSize, style.canvasSize, 'happy');
+    walkCtx.drawImage(tmpCanvas, 0, bounce, walkSize, walkSize);
+    walkCtx.restore();
+
+    walkX += walkDir * 0.8;
+    if (walkX > 250) walkDir = -1;
+    if (walkX < 30) walkDir = 1;
+
+    requestAnimationFrame(animateWalk);
+  }
+  animateWalk();
+
+  container.appendChild(card);
+}
+</script>
+</body>
+</html>
