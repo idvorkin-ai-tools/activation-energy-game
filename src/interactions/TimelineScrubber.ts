@@ -1,5 +1,3 @@
-import { Container, Graphics, Text, TextStyle, FederatedPointerEvent } from "pixi.js";
-
 export interface StoppingCurve {
   label: string;
   color: string;
@@ -21,281 +19,332 @@ const SCRUBBER_HEIGHT = 40;
 const GRAPH_TOP = 40;
 const HANDLE_RADIUS = 10;
 
-export class TimelineScrubber extends Container {
+export class TimelineScrubber {
+  el: HTMLDivElement;
+  onInteract: (() => void) | null = null;
+
   private options: TimelineScrubberOptions;
-  private panelWidth: number;
-  private panelHeight: number;
+  private panelCanvases: HTMLCanvasElement[] = [];
+  private panelContexts: CanvasRenderingContext2D[] = [];
+  private panelWidthCalc: number;
+  private panelHeightCalc: number;
   private graphHeight: number;
   private isNarrow: boolean;
-  private nowLines: Graphics[] = [];
-  private valueLabels: Text[] = [];
-  private scrubberHandle: Graphics;
+  private handleEl: HTMLDivElement;
   private currentTime = 0;
   private interacted = false;
-  private onInteractCallback: (() => void) | null = null;
 
   constructor(options: TimelineScrubberOptions) {
-    super();
-
     this.options = options;
-    this.x = options.x;
-    this.y = options.y;
     this.isNarrow = options.width < 600;
 
-    // Calculate panel dimensions
+    this.el = document.createElement("div");
+    this.el.style.position = "absolute";
+    this.el.style.left = `${options.x}px`;
+    this.el.style.top = `${options.y}px`;
+    this.el.style.width = `${options.width}px`;
+    this.el.style.height = `${options.height}px`;
+
     const numPanels = options.curves.length;
+
     if (this.isNarrow) {
-      // Stack vertically: each panel gets full width, half the available height
-      this.panelWidth = options.width;
+      this.panelWidthCalc = options.width;
       const availableHeight = options.height - SCRUBBER_HEIGHT - 20;
-      this.panelHeight = (availableHeight - PANEL_GAP) / numPanels;
-      this.graphHeight = this.panelHeight - GRAPH_TOP - 10;
+      this.panelHeightCalc = (availableHeight - PANEL_GAP) / numPanels;
+      this.graphHeight = this.panelHeightCalc - GRAPH_TOP - 10;
     } else {
-      this.panelWidth = (options.width - PANEL_GAP * (numPanels - 1)) / numPanels;
-      this.panelHeight = options.height - SCRUBBER_HEIGHT - 10;
+      this.panelWidthCalc = (options.width - PANEL_GAP * (numPanels - 1)) / numPanels;
+      this.panelHeightCalc = options.height - SCRUBBER_HEIGHT - 10;
       this.graphHeight = options.height - SCRUBBER_HEIGHT - GRAPH_TOP - 20;
     }
 
     // Draw panels
     options.curves.forEach((curve, i) => {
-      this.drawPanel(curve, i);
+      this.createPanel(curve, i);
     });
 
-    // Draw scrubber
-    this.scrubberHandle = new Graphics();
-    this.drawScrubber();
-
-    // Initial position
+    // Scrubber
+    this.handleEl = document.createElement("div");
+    this.createScrubber();
     this.updateNowLine(0);
   }
 
-  /** Set a callback for when the user first interacts with the scrubber */
-  set onInteract(cb: (() => void) | null) {
-    this.onInteractCallback = cb;
-  }
-
-  private drawPanel(curve: StoppingCurve, index: number): void {
-    let panelX: number;
-    let panelY: number;
+  private createPanel(curve: StoppingCurve, index: number): void {
+    let panelX: number, panelY: number;
     if (this.isNarrow) {
       panelX = 0;
-      panelY = index * (this.panelHeight + PANEL_GAP);
+      panelY = index * (this.panelHeightCalc + PANEL_GAP);
     } else {
-      panelX = index * (this.panelWidth + PANEL_GAP);
+      panelX = index * (this.panelWidthCalc + PANEL_GAP);
       panelY = 0;
     }
 
+    const canvas = document.createElement("canvas");
+    canvas.width = this.panelWidthCalc;
+    canvas.height = this.panelHeightCalc;
+    canvas.style.position = "absolute";
+    canvas.style.left = `${panelX}px`;
+    canvas.style.top = `${panelY}px`;
+    canvas.style.pointerEvents = "none";
+    this.el.appendChild(canvas);
+
+    const ctx = canvas.getContext("2d")!;
+    this.panelCanvases.push(canvas);
+    this.panelContexts.push(ctx);
+
     // Panel background
-    const bg = new Graphics();
-    bg.roundRect(panelX, panelY, this.panelWidth, this.panelHeight, 8).fill(0x1f2937);
-    bg.alpha = 0.8;
-    this.addChild(bg);
+    ctx.fillStyle = "rgba(31, 41, 55, 0.8)";
+    this.roundRect(ctx, 0, 0, this.panelWidthCalc, this.panelHeightCalc, 8);
+    ctx.fill();
 
-    // Panel title
-    const titleStyle = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 16,
-      fill: curve.color,
-      fontWeight: "bold",
-    });
-    const title = new Text({ text: curve.label, style: titleStyle });
-    title.x = panelX + this.panelWidth / 2;
-    title.y = panelY + 10;
-    title.anchor.set(0.5, 0);
-    this.addChild(title);
+    // Title
+    ctx.fillStyle = curve.color;
+    ctx.font = "bold 16px Arial, Helvetica, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(curve.label, this.panelWidthCalc / 2, 24);
 
-    // Draw axes
-    const axisGraphics = new Graphics();
-    const graphLeft = panelX + PANEL_PADDING;
-    const graphRight = panelX + this.panelWidth - PANEL_PADDING;
-    const graphTop = panelY + GRAPH_TOP;
+    // Axes
+    const graphLeft = PANEL_PADDING;
+    const graphRight = this.panelWidthCalc - PANEL_PADDING;
+    const graphTop = GRAPH_TOP;
     const graphBottom = graphTop + this.graphHeight;
     const graphWidth = graphRight - graphLeft;
 
-    // Y-axis
-    axisGraphics.moveTo(graphLeft, graphTop).lineTo(graphLeft, graphBottom);
-    axisGraphics.stroke({ width: 1, color: 0x4b5563 });
-
-    // X-axis
-    axisGraphics.moveTo(graphLeft, graphBottom).lineTo(graphRight, graphBottom);
-    axisGraphics.stroke({ width: 1, color: 0x4b5563 });
+    ctx.strokeStyle = "#4b5563";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(graphLeft, graphTop);
+    ctx.lineTo(graphLeft, graphBottom);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(graphLeft, graphBottom);
+    ctx.lineTo(graphRight, graphBottom);
+    ctx.stroke();
 
     // Y-axis labels
-    const yLabelStyle = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 10,
-      fill: "#6b7280",
-    });
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "10px Arial, Helvetica, sans-serif";
+    ctx.textAlign = "right";
     for (let v = 0; v <= 50; v += 10) {
       const yPos = graphBottom - (v / 50) * this.graphHeight;
-      const label = new Text({ text: String(v), style: yLabelStyle });
-      label.anchor.set(1, 0.5);
-      label.x = graphLeft - 4;
-      label.y = yPos;
-      this.addChild(label);
+      ctx.fillText(String(v), graphLeft - 4, yPos + 3);
     }
 
-    this.addChild(axisGraphics);
-
-    // Draw the curve as a line graph
-    const curveGraphics = new Graphics();
+    // Curve
     const steps = 100;
     const maxTime = this.options.maxTimeMinutes;
-
-    curveGraphics.moveTo(graphLeft, graphBottom - (curve.getStoppingEnergy(0) / 50) * this.graphHeight);
-
+    ctx.strokeStyle = curve.color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(graphLeft, graphBottom - (curve.getStoppingEnergy(0) / 50) * this.graphHeight);
     for (let s = 1; s <= steps; s++) {
       const t = (s / steps) * maxTime;
       const energy = curve.getStoppingEnergy(t);
       const cx = graphLeft + (s / steps) * graphWidth;
       const cy = graphBottom - (Math.max(0, Math.min(50, energy)) / 50) * this.graphHeight;
-      curveGraphics.lineTo(cx, cy);
+      ctx.lineTo(cx, cy);
     }
-
-    curveGraphics.stroke({ width: 2.5, color: curve.color });
-    this.addChild(curveGraphics);
-
-    // "Now" vertical indicator line
-    const nowLine = new Graphics();
-    this.addChild(nowLine);
-    this.nowLines.push(nowLine);
-
-    // Value label (current stopping energy at cursor position)
-    const valueLabelStyle = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 14,
-      fill: "#e0e0e0",
-      fontWeight: "bold",
-    });
-    const valueLabel = new Text({ text: "", style: valueLabelStyle });
-    valueLabel.anchor.set(0.5, 1);
-    valueLabel.x = panelX + this.panelWidth / 2;
-    valueLabel.y = graphTop - 2;
-    this.addChild(valueLabel);
-    this.valueLabels.push(valueLabel);
+    ctx.stroke();
   }
 
-  private drawScrubber(): void {
+  private createScrubber(): void {
     const scrubberY = this.options.height - SCRUBBER_HEIGHT;
     const trackWidth = this.options.width;
 
-    // Scrubber track
-    const track = new Graphics();
-    track.roundRect(0, scrubberY + SCRUBBER_HEIGHT / 2 - 3, trackWidth, 6, 3).fill(0x374151);
-    this.addChild(track);
+    // Track
+    const track = document.createElement("div");
+    track.style.position = "absolute";
+    track.style.left = "0";
+    track.style.top = `${scrubberY + SCRUBBER_HEIGHT / 2 - 3}px`;
+    track.style.width = `${trackWidth}px`;
+    track.style.height = "6px";
+    track.style.borderRadius = "3px";
+    track.style.background = "#374151";
+    this.el.appendChild(track);
 
     // Time labels
-    const timeLabelStyle = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 11,
-      fill: "#6b7280",
-    });
-
-    const maxTime = this.options.maxTimeMinutes;
     const timeSteps = [0, 30, 60, 90, 120, 150];
     for (const t of timeSteps) {
-      if (t > maxTime) break;
-      const xPos = (t / maxTime) * trackWidth;
-      const label = new Text({ text: `${t}m`, style: timeLabelStyle });
-      label.anchor.set(0.5, 0);
-      label.x = xPos;
-      label.y = scrubberY + SCRUBBER_HEIGHT / 2 + 8;
-      this.addChild(label);
+      if (t > this.options.maxTimeMinutes) break;
+      const xPos = (t / this.options.maxTimeMinutes) * trackWidth;
+      const label = document.createElement("span");
+      label.style.position = "absolute";
+      label.style.left = `${xPos}px`;
+      label.style.top = `${scrubberY + SCRUBBER_HEIGHT / 2 + 8}px`;
+      label.style.transform = "translateX(-50%)";
+      label.style.color = "#6b7280";
+      label.style.fontSize = "11px";
+      label.textContent = `${t}m`;
+      this.el.appendChild(label);
     }
 
-    // Draggable handle
-    this.scrubberHandle.circle(0, 0, HANDLE_RADIUS).fill(0x3b82f6);
-    this.scrubberHandle.x = 0;
-    this.scrubberHandle.y = scrubberY + SCRUBBER_HEIGHT / 2;
-    this.scrubberHandle.eventMode = "static";
-    this.scrubberHandle.cursor = "ew-resize";
-    this.addChild(this.scrubberHandle);
+    // Handle
+    this.handleEl.style.position = "absolute";
+    this.handleEl.style.width = `${HANDLE_RADIUS * 2}px`;
+    this.handleEl.style.height = `${HANDLE_RADIUS * 2}px`;
+    this.handleEl.style.borderRadius = "50%";
+    this.handleEl.style.background = "#3b82f6";
+    this.handleEl.style.left = `${-HANDLE_RADIUS}px`;
+    this.handleEl.style.top = `${scrubberY + SCRUBBER_HEIGHT / 2 - HANDLE_RADIUS}px`;
+    this.handleEl.style.cursor = "ew-resize";
+    this.handleEl.style.zIndex = "5";
+    this.el.appendChild(this.handleEl);
 
-    // Hit area for easier dragging
-    const hitArea = new Graphics();
-    hitArea.rect(0, scrubberY, trackWidth, SCRUBBER_HEIGHT).fill({ color: 0x000000, alpha: 0.01 });
-    hitArea.eventMode = "static";
-    hitArea.cursor = "ew-resize";
-    this.addChild(hitArea);
+    // Invisible hit area for easier dragging
+    const hitArea = document.createElement("div");
+    hitArea.style.position = "absolute";
+    hitArea.style.left = "0";
+    hitArea.style.top = `${scrubberY}px`;
+    hitArea.style.width = `${trackWidth}px`;
+    hitArea.style.height = `${SCRUBBER_HEIGHT}px`;
+    hitArea.style.cursor = "ew-resize";
+    this.el.appendChild(hitArea);
 
     let dragging = false;
 
-    const startDrag = () => {
+    const onStart = (e: PointerEvent) => {
       dragging = true;
+      this.handleEl.setPointerCapture(e.pointerId);
+      onMove(e);
     };
 
-    const onMove = (e: FederatedPointerEvent) => {
+    const onMove = (e: PointerEvent) => {
       if (!dragging) return;
-      const local = this.toLocal(e.global);
-      const clamped = Math.max(0, Math.min(local.x, trackWidth));
+      const rect = this.el.getBoundingClientRect();
+      const localX = e.clientX - rect.left;
+      const clamped = Math.max(0, Math.min(localX, trackWidth));
       const time = (clamped / trackWidth) * this.options.maxTimeMinutes;
       this.currentTime = time;
-      this.scrubberHandle.x = clamped;
+      this.handleEl.style.left = `${clamped - HANDLE_RADIUS}px`;
       this.updateNowLine(time);
 
       if (!this.interacted) {
         this.interacted = true;
-        if (this.onInteractCallback) {
-          this.onInteractCallback();
-        }
+        if (this.onInteract) this.onInteract();
       }
     };
 
-    const endDrag = () => {
-      dragging = false;
-    };
+    const onEnd = () => { dragging = false; };
 
-    this.scrubberHandle.on("pointerdown", startDrag);
-    hitArea.on("pointerdown", (e: FederatedPointerEvent) => {
-      startDrag();
+    this.handleEl.addEventListener("pointerdown", onStart);
+    hitArea.addEventListener("pointerdown", (e) => {
+      dragging = true;
       onMove(e);
     });
-
-    this.scrubberHandle.on("globalpointermove", onMove);
-    hitArea.on("globalpointermove", onMove);
-
-    this.scrubberHandle.on("pointerup", endDrag);
-    this.scrubberHandle.on("pointerupoutside", endDrag);
-    hitArea.on("pointerup", endDrag);
-    hitArea.on("pointerupoutside", endDrag);
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onEnd);
   }
 
   private updateNowLine(timeMinutes: number): void {
     const { curves, maxTimeMinutes } = this.options;
 
     curves.forEach((curve, i) => {
-      let panelX: number;
-      let panelY: number;
-      if (this.isNarrow) {
-        panelX = 0;
-        panelY = i * (this.panelHeight + PANEL_GAP);
-      } else {
-        panelX = i * (this.panelWidth + PANEL_GAP);
-        panelY = 0;
-      }
-      const graphLeft = panelX + PANEL_PADDING;
-      const graphRight = panelX + this.panelWidth - PANEL_PADDING;
-      const graphWidth = graphRight - graphLeft;
-      const graphTop = panelY + GRAPH_TOP;
+      const ctx = this.panelContexts[i];
+      const canvas = this.panelCanvases[i];
+
+      // Save and redraw the base panel (clear overlay area only)
+      // For simplicity, we create an overlay canvas per panel
+      // But simpler: draw on a separate overlay canvas
+      // Actually let's just re-render the panels with indicator
+
+      // Clear and redraw
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Panel background
+      ctx.fillStyle = "rgba(31, 41, 55, 0.8)";
+      this.roundRect(ctx, 0, 0, this.panelWidthCalc, this.panelHeightCalc, 8);
+      ctx.fill();
+
+      // Title
+      ctx.fillStyle = curve.color;
+      ctx.font = "bold 16px Arial, Helvetica, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(curve.label, this.panelWidthCalc / 2, 24);
+
+      // Axes
+      const graphLeft = PANEL_PADDING;
+      const graphRight = this.panelWidthCalc - PANEL_PADDING;
+      const graphTop = GRAPH_TOP;
       const graphBottom = graphTop + this.graphHeight;
+      const graphWidth = graphRight - graphLeft;
 
-      const nowLine = this.nowLines[i];
-      nowLine.clear();
+      ctx.strokeStyle = "#4b5563";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(graphLeft, graphTop);
+      ctx.lineTo(graphLeft, graphBottom);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(graphLeft, graphBottom);
+      ctx.lineTo(graphRight, graphBottom);
+      ctx.stroke();
 
+      // Y-axis labels
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "10px Arial, Helvetica, sans-serif";
+      ctx.textAlign = "right";
+      for (let v = 0; v <= 50; v += 10) {
+        const yPos = graphBottom - (v / 50) * this.graphHeight;
+        ctx.fillText(String(v), graphLeft - 4, yPos + 3);
+      }
+
+      // Curve
+      const steps = 100;
+      const maxTime = maxTimeMinutes;
+      ctx.strokeStyle = curve.color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(graphLeft, graphBottom - (curve.getStoppingEnergy(0) / 50) * this.graphHeight);
+      for (let s = 1; s <= steps; s++) {
+        const t = (s / steps) * maxTime;
+        const energy = curve.getStoppingEnergy(t);
+        const cx = graphLeft + (s / steps) * graphWidth;
+        const cy = graphBottom - (Math.max(0, Math.min(50, energy)) / 50) * this.graphHeight;
+        ctx.lineTo(cx, cy);
+      }
+      ctx.stroke();
+
+      // Now line
       const xFraction = timeMinutes / maxTimeMinutes;
       const lineX = graphLeft + xFraction * graphWidth;
 
-      // Vertical line
-      nowLine.moveTo(lineX, graphTop).lineTo(lineX, graphBottom);
-      nowLine.stroke({ width: 1.5, color: 0xfbbf24, alpha: 0.8 });
+      ctx.strokeStyle = "rgba(251, 191, 36, 0.8)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(lineX, graphTop);
+      ctx.lineTo(lineX, graphBottom);
+      ctx.stroke();
 
-      // Dot on the curve at current position
+      // Dot on curve
       const energy = curve.getStoppingEnergy(timeMinutes);
       const dotY = graphBottom - (Math.max(0, Math.min(50, energy)) / 50) * this.graphHeight;
-      nowLine.circle(lineX, dotY, 5).fill(0xfbbf24);
+      ctx.fillStyle = "#fbbf24";
+      ctx.beginPath();
+      ctx.arc(lineX, dotY, 5, 0, Math.PI * 2);
+      ctx.fill();
 
-      // Update value label
-      this.valueLabels[i].text = `Stopping: ${Math.round(energy)}`;
+      // Value label
+      ctx.fillStyle = "#e0e0e0";
+      ctx.font = "bold 14px Arial, Helvetica, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`Stopping: ${Math.round(energy)}`, this.panelWidthCalc / 2, graphTop - 6);
     });
+  }
+
+  private roundRect(
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number, w: number, h: number, r: number,
+  ): void {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
   }
 }

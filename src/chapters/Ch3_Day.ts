@@ -1,4 +1,3 @@
-import { Application } from "pixi.js";
 import { Scene } from "../engine/Scene";
 import { TextBox } from "../engine/TextBox";
 import { Button } from "../engine/Button";
@@ -9,11 +8,10 @@ import { createSkipButton } from "../engine/SkipButton";
 import type { Game } from "../Game";
 
 export class Ch3_Day extends Scene {
-  onComplete: (() => void) | null = null;
   private game: Game;
 
-  constructor(app: Application, game: Game) {
-    super(app);
+  constructor(game: Game) {
+    super();
     this.game = game;
   }
 
@@ -23,17 +21,14 @@ export class Ch3_Day extends Scene {
     const textX = 80;
     const textMaxW = w * 0.7;
 
-    // ─── Intro Text ──────────────────────────────────────────
-
     const text1 = new TextBox({
       text: "OK. So starting things costs willpower. Stopping things costs willpower. And you have a limited tank.",
       x: textX,
       y: 60,
       maxWidth: textMaxW,
     });
-    this.container.addChild(text1);
+    this.el.appendChild(text1.el);
     await text1.show();
-
     await this.delay(600);
 
     const text2 = new TextBox({
@@ -42,21 +37,14 @@ export class Ch3_Day extends Scene {
       y: 120,
       maxWidth: textMaxW,
     });
-    this.container.addChild(text2);
+    this.el.appendChild(text2.el);
     await text2.show();
-
     await this.delay(400);
-
-    // ─── Day Timeline ────────────────────────────────────────
 
     // Select 6 activities for the planner
     const activityIds = [
-      "morning-workout",
-      "breakfast-with-family",
-      "deep-work",
-      "tiktok",
-      "afternoon-meetings",
-      "evening-gym",
+      "morning-workout", "breakfast-with-family", "deep-work",
+      "tiktok", "afternoon-meetings", "evening-gym",
     ];
     const activities: Activity[] = activityIds
       .map((id) => getActivityById(id))
@@ -70,7 +58,7 @@ export class Ch3_Day extends Scene {
       activities,
       willpowerBar: this.game.willpowerBar,
     });
-    this.container.addChild(timeline);
+    this.el.appendChild(timeline.el);
 
     const instructionText = new TextBox({
       text: "Plan a day. Drag the blocks into order on the timeline, then press Play.",
@@ -80,104 +68,70 @@ export class Ch3_Day extends Scene {
       fontSize: 16,
       color: "#9ca3af",
     });
-    this.container.addChild(instructionText);
+    this.el.appendChild(instructionText.el);
     instructionText.showInstant();
-
-    // ─── After First Play ────────────────────────────────────
 
     let playResolve: () => void;
     let playResolved = false;
     const playPromise = new Promise<void>((resolve) => {
       playResolve = () => {
-        if (!playResolved) {
-          playResolved = true;
-          resolve();
-        }
+        if (!playResolved) { playResolved = true; resolve(); }
       };
     });
     timeline.onFirstPlayComplete = playResolve!;
-
-    // Skip button appears after 8s, resolves the play-complete gate
-    const cleanupSkip = createSkipButton(this.container, w, h, playResolve!);
+    const cleanupSkip = createSkipButton(this.el, w, h, playResolve!);
 
     await playPromise;
     cleanupSkip();
-
     instructionText.hide();
 
-    // Analyze the schedule for contextual feedback
     const schedule = timeline.getSchedule();
     const firstActivityId = schedule.length > 0 ? schedule[0].activity.id : "";
     const tiktokSlot = schedule.find((s) => s.activity.id === "tiktok");
     const afternoonSlots = schedule.filter(
-      (s) =>
-        s.startMinute >= 720 &&
-        s.activity.id !== "tiktok",
+      (s) => s.startMinute >= 720 && s.activity.id !== "tiktok",
     );
     const tiktokBeforeAfternoon =
-      tiktokSlot &&
-      afternoonSlots.some((s) => s.startMinute > tiktokSlot.startMinute);
+      tiktokSlot && afternoonSlots.some((s) => s.startMinute > tiktokSlot.startMinute);
 
     let feedbackMessage: string;
     if (firstActivityId === "morning-workout") {
-      feedbackMessage =
-        "Did you catch it? Morning habits don't just cost willpower \u2014 they generate it.";
+      feedbackMessage = "Did you catch it? Morning habits don't just cost willpower \u2014 they generate it.";
     } else if (tiktokBeforeAfternoon) {
       feedbackMessage = "But that TikTok at lunch? Devastating.";
     } else {
-      feedbackMessage =
-        "The same activities in different order produce completely different days.";
+      feedbackMessage = "The same activities in different order produce completely different days.";
     }
 
-    const feedbackText = new TextBox({
-      text: feedbackMessage,
-      x: textX,
-      y: h - 220,
-      maxWidth: textMaxW,
-    });
-    this.container.addChild(feedbackText);
+    const feedbackText = new TextBox({ text: feedbackMessage, x: textX, y: h - 220, maxWidth: textMaxW });
+    this.el.appendChild(feedbackText.el);
     await feedbackText.show();
-
     await this.delay(1200);
 
     const text3 = new TextBox({
       text: "This is why morning routines aren't a productivity hack. They're an energy strategy.",
-      x: textX,
-      y: h - 170,
-      maxWidth: textMaxW,
+      x: textX, y: h - 170, maxWidth: textMaxW,
     });
-    this.container.addChild(text3);
+    this.el.appendChild(text3.el);
     await text3.show();
-
     await this.delay(1200);
 
     const text4 = new TextBox({
       text: "But we've been lying to you a little. That willpower bar? It's not actually one bar.",
-      x: textX,
-      y: h - 120,
-      maxWidth: textMaxW,
+      x: textX, y: h - 120, maxWidth: textMaxW,
     });
-    this.container.addChild(text4);
+    this.el.appendChild(text4.el);
     await text4.show();
-
-    // ─── Next Button ─────────────────────────────────────────
 
     const nextBtn = new Button({
       text: "Next \u2192",
-      x: w - 160,
-      y: h - 80,
-      width: 120,
-      height: 44,
-      onClick: () => {
-        if (this.onComplete) this.onComplete();
-      },
+      x: w - 160, y: h - 80, width: 120, height: 44,
+      onClick: () => { if (this.onComplete) this.onComplete(); },
     });
-    this.container.addChild(nextBtn);
+    this.el.appendChild(nextBtn.el);
   }
 
-  async exit(): Promise<void> {
-    // Cleanup handled by Scene.destroy()
-  }
+  async exit(): Promise<void> {}
 
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

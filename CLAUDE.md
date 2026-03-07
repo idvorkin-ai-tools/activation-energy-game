@@ -8,7 +8,7 @@ Production auto-deploys on push to main via GitHub Actions. PRs get preview depl
 
 ## What This Is
 
-An interactive narrative game (Nicky Case-style explorable explainer) about willpower, habits, and activation energy. Built with PixiJS — all graphics are procedurally drawn (no image sprites). 8 sequential chapters, each with narrative text and an interactive component.
+An interactive narrative game (Nicky Case-style explorable explainer) about willpower, habits, and activation energy. Built with HTML/CSS/Canvas — all graphics are procedurally drawn (no image sprites). 8 sequential chapters, each with narrative text and an interactive component.
 
 ## Commands
 
@@ -31,9 +31,9 @@ main.ts → Game → SceneManager → Chapter (extends Scene)
                 → WillpowerBar (persistent, always visible)
 ```
 
-- **Game** (`src/Game.ts`): Top-level orchestrator. Owns the SceneManager, WillpowerBar, and the app ticker that drives all tween updates (global + per-component groups).
-- **SceneManager** (`src/engine/SceneManager.ts`): Manages one active Scene at a time with 400ms fade transitions. Calls `enter()`/`exit()` on scenes.
-- **Scene** (`src/engine/Scene.ts`): Abstract base class. Each chapter extends it, implementing `enter()` (async setup) and `exit()` (cleanup). The chapter signals completion via `this.onComplete?.()`.
+- **Game** (`src/Game.ts`): Top-level orchestrator. Owns the SceneManager, WillpowerBar, and a `requestAnimationFrame` loop that drives tween updates (global + WillpowerBar groups).
+- **SceneManager** (`src/engine/SceneManager.ts`): Manages one active Scene at a time with 400ms CSS opacity fade transitions. Calls `enter()`/`exit()` on scenes.
+- **Scene** (`src/engine/Scene.ts`): Abstract base class owning an `HTMLDivElement`. Each chapter extends it, implementing `enter()` (async setup) and `exit()` (cleanup). The chapter signals completion via `this.onComplete?.()`.
 
 ### Chapter Flow
 
@@ -44,7 +44,7 @@ Chapters run sequentially (Ch0→Ch7). Each chapter's `enter()` method:
 4. Updates WillpowerBar and Character expression
 5. Calls `this.onComplete?.()` to trigger the next chapter
 
-Chapter constructors take `(app: Application, game: Game)` — `game` provides access to the shared `willpowerBar`.
+Chapter constructors take `(game: Game)` — `game` provides access to the shared `willpowerBar`.
 
 ### Simulation Layer (`src/sim/`)
 
@@ -56,27 +56,27 @@ Pure logic with no rendering dependencies:
 
 ### Interaction Components (`src/interactions/`)
 
-Each is a PIXI Container with its own Tween.Group for animations. They accept options (position, dimensions, callbacks) and fire callbacks on user completion. One per chapter:
+Each owns an `HTMLDivElement` (`.el` property) and uses HTML elements for UI with Canvas 2D for charts/drawings. Some use their own Tween.Group for animations. They accept options (position, dimensions, callbacks) and fire callbacks on user completion. One per chapter:
 - Ch1: DragToNumberLine, Ch2: TimelineScrubber, Ch3: DayTimeline
 - Ch4: FiberRope, Ch5: SpiralAnimation, Ch6: LeverToggles
 
 ### Character System (`src/characters/`)
 
-Procedurally drawn pill-shaped character with 6 expressions (happy, neutral, tired, stressed, desperate, energized). Key methods: `setExpression(name)`, `walkTo(x, y, duration)`. `Character.expressionForWillpower(percent)` maps willpower percentage to an expression.
+Procedurally drawn pill-shaped character on a small `<canvas>` element with 6 expressions (happy, neutral, tired, stressed, desperate, energized). Key methods: `setExpression(name)`, `walkTo(x, y, duration)`. `Character.expressionForWillpower(percent)` maps willpower percentage to an expression.
 
 ### Animation Pattern
 
-Tween.js is used throughout. The Game ticker updates three things each frame:
+Tween.js is used for animated values (willpower bar, card reveals, cost floats). The Game runs a `requestAnimationFrame` loop that updates:
 1. Global tween group (`updateTweens()`)
-2. SceneManager's tween group (fade transitions)
-3. WillpowerBar's tween group
+2. WillpowerBar's tween group
 
-Each interaction component also runs its own `requestAnimationFrame` loop for its local tween group.
+Scene transitions use CSS `opacity` with `transition` property. Each interaction component that uses tweens also runs its own `requestAnimationFrame` loop for its local tween group.
 
 ## Key Conventions
 
 - **TypeScript strict mode** with ES2020 target
-- **No sprites/textures** — all visuals drawn with PIXI Graphics
+- **No sprites/textures** — all visuals drawn with HTML/CSS and Canvas 2D
+- **No heavy frameworks** — vanilla DOM manipulation, `<canvas>` for procedural drawing
 - **Sounds via Howler.js** — `src/assets/sounds.ts` is a stub ready for real audio files in `public/sounds/`
 - **Design docs** in `docs/plans/` — the script and implementation plan describe intended behavior for all chapters
 - **Deployed to Surge.sh** — staging at `activation-energy-game-stage.surge.sh`, production at `activation-energy-game.surge.sh`

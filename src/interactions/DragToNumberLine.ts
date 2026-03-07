@@ -1,5 +1,5 @@
-import { Container, Graphics, Text, TextStyle, FederatedPointerEvent } from "pixi.js";
 import { Tween, Group } from "@tweenjs/tween.js";
+import { hexToCSS } from "../utils/dom";
 
 export interface DragCard {
   id: string;
@@ -20,30 +20,39 @@ export interface DragToNumberLineOptions {
 
 const CARD_WIDTH = 120;
 const CARD_HEIGHT = 50;
-const CARD_RADIUS = 10;
 const LINE_Y = 80;
 const CARD_COLORS = [0x3b82f6, 0x22c55e, 0xa855f7, 0xf97316, 0xeab308];
 
-export class DragToNumberLine extends Container {
-  private lineGraphics: Graphics;
-  private cardsContainer: Container;
-  private cardMap: Map<string, Container> = new Map();
+export class DragToNumberLine {
+  el: HTMLDivElement;
   private placedCards: Map<string, number> = new Map();
+  private cardEls: Map<string, HTMLDivElement> = new Map();
   private tweenGroup: Group;
   private options: DragToNumberLineOptions;
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
 
   constructor(options: DragToNumberLineOptions) {
-    super();
-
     this.options = options;
-    this.x = options.x;
-    this.y = options.y;
-    this.tweenGroup = new Group;
+    this.tweenGroup = new Group();
 
-    this.lineGraphics = new Graphics();
-    this.cardsContainer = new Container();
-    this.addChild(this.lineGraphics);
-    this.addChild(this.cardsContainer);
+    this.el = document.createElement("div");
+    this.el.style.position = "absolute";
+    this.el.style.left = `${options.x}px`;
+    this.el.style.top = `${options.y}px`;
+    this.el.style.width = `${options.width}px`;
+    this.el.style.height = "300px";
+
+    // Canvas for the number line
+    this.canvas = document.createElement("canvas");
+    this.canvas.width = options.width;
+    this.canvas.height = 300;
+    this.canvas.style.position = "absolute";
+    this.canvas.style.left = "0";
+    this.canvas.style.top = "0";
+    this.canvas.style.pointerEvents = "none";
+    this.ctx = this.canvas.getContext("2d")!;
+    this.el.appendChild(this.canvas);
 
     this.drawNumberLine();
     this.createCards();
@@ -57,38 +66,38 @@ export class DragToNumberLine extends Container {
   }
 
   private drawNumberLine(): void {
+    const ctx = this.ctx;
     const { width, minValue, maxValue } = this.options;
-    const g = this.lineGraphics;
 
     // Main horizontal line
-    g.moveTo(0, LINE_Y).lineTo(width, LINE_Y);
-    g.stroke({ width: 2, color: 0x9ca3af });
+    ctx.strokeStyle = "#9ca3af";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, LINE_Y);
+    ctx.lineTo(width, LINE_Y);
+    ctx.stroke();
 
-    // Tick marks and labels at meaningful intervals
+    // Tick marks and labels
     const range = maxValue - minValue;
     const step = range <= 100 ? 10 : 20;
 
-    const labelStyle = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 12,
-      fill: "#9ca3af",
-    });
+    ctx.font = "12px Arial, Helvetica, sans-serif";
+    ctx.textAlign = "center";
 
     for (let val = minValue; val <= maxValue; val += step) {
       const xPos = this.valueToX(val);
 
-      // Tick mark
       const tickHeight = val === 0 ? 12 : 6;
-      g.moveTo(xPos, LINE_Y - tickHeight).lineTo(xPos, LINE_Y + tickHeight);
-      g.stroke({ width: val === 0 ? 2 : 1, color: val === 0 ? 0xe0e0e0 : 0x6b7280 });
+      ctx.strokeStyle = val === 0 ? "#e0e0e0" : "#6b7280";
+      ctx.lineWidth = val === 0 ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(xPos, LINE_Y - tickHeight);
+      ctx.lineTo(xPos, LINE_Y + tickHeight);
+      ctx.stroke();
 
-      // Label (only show every other tick, or all if step is large)
       if (val % (step * 2) === 0 || step >= 20 || val === 0) {
-        const label = new Text({ text: String(val), style: labelStyle });
-        label.anchor.set(0.5, 0);
-        label.x = xPos;
-        label.y = LINE_Y + 14;
-        this.addChild(label);
+        ctx.fillStyle = "#9ca3af";
+        ctx.fillText(String(val), xPos, LINE_Y + 26);
       }
     }
   }
@@ -108,153 +117,128 @@ export class DragToNumberLine extends Container {
     const { cards } = this.options;
     const isNarrow = this.options.width < 600;
     const cardW = isNarrow ? 100 : CARD_WIDTH;
-    const cardH = CARD_HEIGHT;
     const gap = isNarrow ? 8 : 12;
     const spacing = cardW + gap;
 
-    // On narrow screens, use 2 rows: 3 cards on top, 2 on bottom
     const topRowCount = isNarrow ? 3 : cards.length;
-    const startY = LINE_Y - cardH - (isNarrow ? 100 : 50);
+    const startY = LINE_Y - CARD_HEIGHT - (isNarrow ? 100 : 50);
 
     cards.forEach((card, index) => {
-      const cardContainer = new Container();
-      const color = CARD_COLORS[index % CARD_COLORS.length];
-
-      // Card background
-      const bg = new Graphics();
-      bg.roundRect(0, 0, cardW, cardH, CARD_RADIUS).fill(color);
-      bg.alpha = 0.9;
-      cardContainer.addChild(bg);
-
-      // Card label
-      const labelStyle = new TextStyle({
-        fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: isNarrow ? 11 : 13,
-        fill: "#ffffff",
-        fontWeight: "bold",
-        wordWrap: true,
-        wordWrapWidth: cardW - 16,
-        align: "center",
-      });
-      const label = new Text({ text: card.label, style: labelStyle });
-      label.anchor.set(0.5);
-      label.x = cardW / 2;
-      label.y = cardH / 2;
-      cardContainer.addChild(label);
+      const cardEl = document.createElement("div");
+      cardEl.style.position = "absolute";
+      cardEl.style.width = `${cardW}px`;
+      cardEl.style.height = `${CARD_HEIGHT}px`;
+      cardEl.style.borderRadius = "10px";
+      cardEl.style.background = hexToCSS(CARD_COLORS[index % CARD_COLORS.length]);
+      cardEl.style.opacity = "0.9";
+      cardEl.style.display = "flex";
+      cardEl.style.alignItems = "center";
+      cardEl.style.justifyContent = "center";
+      cardEl.style.textAlign = "center";
+      cardEl.style.color = "#fff";
+      cardEl.style.fontWeight = "bold";
+      cardEl.style.fontSize = isNarrow ? "11px" : "13px";
+      cardEl.style.cursor = "grab";
+      cardEl.style.userSelect = "none";
+      cardEl.style.padding = "4px";
+      cardEl.style.lineHeight = "1.2";
+      cardEl.textContent = card.label;
 
       // Position stacked above the line
+      let initX: number, initY: number;
       if (isNarrow) {
         const row = index < topRowCount ? 0 : 1;
         const colIndex = row === 0 ? index : index - topRowCount;
         const colCount = row === 0 ? topRowCount : cards.length - topRowCount;
         const rowTotalWidth = colCount * spacing - gap;
         const rowStartX = (this.options.width - rowTotalWidth) / 2;
-        cardContainer.x = rowStartX + colIndex * spacing;
-        cardContainer.y = startY + row * (cardH + gap);
+        initX = rowStartX + colIndex * spacing;
+        initY = startY + row * (CARD_HEIGHT + gap);
       } else {
         const totalWidth = cards.length * spacing - gap;
-        const startX = (this.options.width - totalWidth) / 2;
-        cardContainer.x = startX + index * spacing;
-        cardContainer.y = startY;
+        const rowStartX = (this.options.width - totalWidth) / 2;
+        initX = rowStartX + index * spacing;
+        initY = startY;
       }
 
-      // Make draggable
-      cardContainer.eventMode = "static";
-      cardContainer.cursor = "grab";
+      cardEl.style.left = `${initX}px`;
+      cardEl.style.top = `${initY}px`;
 
+      // Drag logic
       let dragging = false;
-      const dragOffset = { x: 0, y: 0 };
+      let offsetX = 0, offsetY = 0;
 
-      cardContainer.on("pointerdown", (e: FederatedPointerEvent) => {
+      const onPointerDown = (e: PointerEvent) => {
         dragging = true;
-        cardContainer.cursor = "grabbing";
-        const local = this.toLocal(e.global);
-        dragOffset.x = local.x - cardContainer.x;
-        dragOffset.y = local.y - cardContainer.y;
-        // Bring to front
-        this.cardsContainer.setChildIndex(
-          cardContainer,
-          this.cardsContainer.children.length - 1,
-        );
-      });
+        cardEl.style.cursor = "grabbing";
+        cardEl.style.zIndex = "10";
+        const rect = this.el.getBoundingClientRect();
+        offsetX = e.clientX - rect.left - parseFloat(cardEl.style.left);
+        offsetY = e.clientY - rect.top - parseFloat(cardEl.style.top);
+        cardEl.setPointerCapture(e.pointerId);
+      };
 
-      cardContainer.on("globalpointermove", (e: FederatedPointerEvent) => {
+      const onPointerMove = (e: PointerEvent) => {
         if (!dragging) return;
-        const local = this.toLocal(e.global);
-        cardContainer.x = local.x - dragOffset.x;
-        cardContainer.y = local.y - dragOffset.y;
-      });
+        const rect = this.el.getBoundingClientRect();
+        cardEl.style.left = `${e.clientX - rect.left - offsetX}px`;
+        cardEl.style.top = `${e.clientY - rect.top - offsetY}px`;
+      };
 
-      cardContainer.on("pointerup", () => {
+      const onPointerUp = () => {
         if (!dragging) return;
         dragging = false;
-        cardContainer.cursor = "grab";
+        cardEl.style.cursor = "grab";
+        cardEl.style.zIndex = "";
 
-        // Snap to number line
-        const centerX = cardContainer.x + cardW / 2;
+        const centerX = parseFloat(cardEl.style.left) + cardW / 2;
         const snappedValue = Math.round(this.xToValue(centerX));
         const snappedX = this.valueToX(snappedValue) - cardW / 2;
 
-        cardContainer.x = snappedX;
-        cardContainer.y = LINE_Y - cardH - 4;
-
-        this.placedCards.set(card.id, snappedValue);
-
-        // Check if all cards are placed
-        if (this.placedCards.size === this.options.cards.length) {
-          this.options.onAllPlaced(new Map(this.placedCards));
-        }
-      });
-
-      cardContainer.on("pointerupoutside", () => {
-        if (!dragging) return;
-        dragging = false;
-        cardContainer.cursor = "grab";
-
-        // Snap same as pointerup
-        const centerX = cardContainer.x + cardW / 2;
-        const snappedValue = Math.round(this.xToValue(centerX));
-        const snappedX = this.valueToX(snappedValue) - cardW / 2;
-
-        cardContainer.x = snappedX;
-        cardContainer.y = LINE_Y - cardH - 4;
+        cardEl.style.left = `${snappedX}px`;
+        cardEl.style.top = `${LINE_Y - CARD_HEIGHT - 4}px`;
 
         this.placedCards.set(card.id, snappedValue);
 
         if (this.placedCards.size === this.options.cards.length) {
           this.options.onAllPlaced(new Map(this.placedCards));
         }
-      });
+      };
 
-      this.cardsContainer.addChild(cardContainer);
-      this.cardMap.set(card.id, cardContainer);
+      cardEl.addEventListener("pointerdown", onPointerDown);
+      cardEl.addEventListener("pointermove", onPointerMove);
+      cardEl.addEventListener("pointerup", onPointerUp);
+      cardEl.addEventListener("pointercancel", onPointerUp);
+
+      this.el.appendChild(cardEl);
+      this.cardEls.set(card.id, cardEl);
     });
   }
 
-  /** Animate all cards to their correct positions */
   async reveal(): Promise<void> {
     const { cards } = this.options;
     const isNarrow = this.options.width < 600;
     const cardW = isNarrow ? 100 : CARD_WIDTH;
-    const cardH = CARD_HEIGHT;
     const promises: Promise<void>[] = [];
 
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
-      const cardContainer = this.cardMap.get(card.id);
-      if (!cardContainer) continue;
+      const cardEl = this.cardEls.get(card.id);
+      if (!cardEl) continue;
 
       const targetX = this.valueToX(card.correctValue) - cardW / 2;
-      const targetY = LINE_Y - cardH - 4;
+      const targetY = LINE_Y - CARD_HEIGHT - 4;
 
       const p = new Promise<void>((resolve) => {
         setTimeout(() => {
-          const pos = { x: cardContainer.x, y: cardContainer.y };
+          const startX = parseFloat(cardEl.style.left);
+          const startY = parseFloat(cardEl.style.top);
+          const pos = { x: startX, y: startY };
           const tween = new Tween(pos)
             .to({ x: targetX, y: targetY }, 500)
             .onUpdate(() => {
-              cardContainer.x = pos.x;
-              cardContainer.y = pos.y;
+              cardEl.style.left = `${pos.x}px`;
+              cardEl.style.top = `${pos.y}px`;
             })
             .onComplete(() => resolve());
           this.tweenGroup.add(tween);

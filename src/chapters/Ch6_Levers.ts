@@ -1,4 +1,3 @@
-import { Application } from "pixi.js";
 import { Scene } from "../engine/Scene";
 import { TextBox } from "../engine/TextBox";
 import { Button } from "../engine/Button";
@@ -10,11 +9,10 @@ import {
 import type { Game } from "../Game";
 
 export class Ch6_Levers extends Scene {
-  onComplete: (() => void) | null = null;
   private game: Game;
 
-  constructor(app: Application, game: Game) {
-    super(app);
+  constructor(game: Game) {
+    super();
     this.game = game;
   }
 
@@ -32,7 +30,7 @@ export class Ch6_Levers extends Scene {
       y: 50,
       maxWidth: textMaxW,
     });
-    this.container.addChild(text1);
+    this.el.appendChild(text1.el);
     await text1.show();
 
     await this.delay(1000);
@@ -43,7 +41,7 @@ export class Ch6_Levers extends Scene {
       y: 100,
       maxWidth: textMaxW,
     });
-    this.container.addChild(text2);
+    this.el.appendChild(text2.el);
     await text2.show();
 
     await this.delay(800);
@@ -56,7 +54,7 @@ export class Ch6_Levers extends Scene {
       fontSize: 26,
       color: "#3b82f6",
     });
-    this.container.addChild(text3);
+    this.el.appendChild(text3.el);
     await text3.show();
 
     await this.delay(1000);
@@ -76,7 +74,7 @@ export class Ch6_Levers extends Scene {
       fontSize: 24,
       color: "#22c55e",
     });
-    this.container.addChild(lever1Title);
+    this.el.appendChild(lever1Title.el);
     await lever1Title.show();
 
     const morningToggle = new MorningHabitsToggle({
@@ -85,7 +83,7 @@ export class Ch6_Levers extends Scene {
       width: Math.min(w - 100, 600),
       height: h * 0.35,
     });
-    this.container.addChild(morningToggle);
+    this.el.appendChild(morningToggle.el);
 
     await this.delay(1500);
 
@@ -95,7 +93,7 @@ export class Ch6_Levers extends Scene {
       y: h * 0.35 + 120,
       maxWidth: textMaxW,
     });
-    this.container.addChild(lever1Explain);
+    this.el.appendChild(lever1Explain.el);
     await lever1Explain.show();
 
     await this.delay(1000);
@@ -108,7 +106,7 @@ export class Ch6_Levers extends Scene {
       fontSize: 16,
       color: "#9ca3af",
     });
-    this.container.addChild(bullets1);
+    this.el.appendChild(bullets1.el);
     await bullets1.show();
 
     await this.delay(1500);
@@ -119,7 +117,7 @@ export class Ch6_Levers extends Scene {
       y: h - 130,
       maxWidth: textMaxW,
     });
-    this.container.addChild(lever1Summary);
+    this.el.appendChild(lever1Summary.el);
     await lever1Summary.show();
 
     // Continue button for lever 1 → lever 2
@@ -128,7 +126,7 @@ export class Ch6_Levers extends Scene {
     // ─── Lever 2: Schedules ──────────────────────────────────
 
     // Clear lever 1 content
-    this.container.removeChildren();
+    this.el.innerHTML = "";
 
     const lever2Title = new TextBox({
       text: "Lever 2: Schedules",
@@ -138,7 +136,7 @@ export class Ch6_Levers extends Scene {
       fontSize: 24,
       color: "#3b82f6",
     });
-    this.container.addChild(lever2Title);
+    this.el.appendChild(lever2Title.el);
     await lever2Title.show();
 
     const scheduleComparison = new ScheduleComparison({
@@ -147,7 +145,7 @@ export class Ch6_Levers extends Scene {
       width: Math.min(w - 60, 700),
       height: h * 0.4,
     });
-    this.container.addChild(scheduleComparison);
+    this.el.appendChild(scheduleComparison.el);
 
     await this.delay(2000);
 
@@ -157,7 +155,7 @@ export class Ch6_Levers extends Scene {
       y: h * 0.4 + 130,
       maxWidth: textMaxW,
     });
-    this.container.addChild(lever2Text1);
+    this.el.appendChild(lever2Text1.el);
     await lever2Text1.show();
 
     await this.delay(1000);
@@ -168,7 +166,7 @@ export class Ch6_Levers extends Scene {
       y: h * 0.4 + 175,
       maxWidth: textMaxW,
     });
-    this.container.addChild(lever2Text2);
+    this.el.appendChild(lever2Text2.el);
     await lever2Text2.show();
 
     await this.delay(1200);
@@ -179,7 +177,7 @@ export class Ch6_Levers extends Scene {
       y: h - 130,
       maxWidth: textMaxW,
     });
-    this.container.addChild(lever2Summary);
+    this.el.appendChild(lever2Summary.el);
     await lever2Summary.show();
 
     // Continue button for lever 2 → lever 3
@@ -188,7 +186,8 @@ export class Ch6_Levers extends Scene {
     // ─── Lever 3: Peers ──────────────────────────────────────
 
     // Clear lever 2 content
-    this.container.removeChildren();
+    scheduleComparison.destroy();
+    this.el.innerHTML = "";
 
     const lever3Title = new TextBox({
       text: "Lever 3: Peers",
@@ -198,7 +197,7 @@ export class Ch6_Levers extends Scene {
       fontSize: 24,
       color: "#a855f7",
     });
-    this.container.addChild(lever3Title);
+    this.el.appendChild(lever3Title.el);
     await lever3Title.show();
 
     const peerGravity = new PeerGravity({
@@ -207,7 +206,7 @@ export class Ch6_Levers extends Scene {
       width: Math.min(w - 60, 600),
       height: h * 0.55,
     });
-    this.container.addChild(peerGravity);
+    this.el.appendChild(peerGravity.el);
 
     await this.delay(1500);
 
@@ -217,7 +216,7 @@ export class Ch6_Levers extends Scene {
       y: h * 0.55 + 120,
       maxWidth: textMaxW,
     });
-    this.container.addChild(lever3Text1);
+    this.el.appendChild(lever3Text1.el);
     await lever3Text1.show();
 
     await this.delay(1200);
@@ -228,7 +227,7 @@ export class Ch6_Levers extends Scene {
       y: h - 130,
       maxWidth: textMaxW,
     });
-    this.container.addChild(lever3Text2);
+    this.el.appendChild(lever3Text2.el);
     await lever3Text2.show();
 
     // ─── Next Button ─────────────────────────────────────────
@@ -243,12 +242,10 @@ export class Ch6_Levers extends Scene {
         if (this.onComplete) this.onComplete();
       },
     });
-    this.container.addChild(nextBtn);
+    this.el.appendChild(nextBtn.el);
   }
 
-  async exit(): Promise<void> {
-    // Cleanup handled by Scene.destroy()
-  }
+  async exit(): Promise<void> {}
 
   /** Show a "Continue" button and wait for click */
   private waitForContinue(w: number, h: number): Promise<void> {
@@ -263,7 +260,7 @@ export class Ch6_Levers extends Scene {
           resolve();
         },
       });
-      this.container.addChild(btn);
+      this.el.appendChild(btn.el);
     });
   }
 

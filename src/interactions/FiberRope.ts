@@ -1,9 +1,9 @@
-import { Container, Graphics, Text, TextStyle } from "pixi.js";
 import { Tween, Group } from "@tweenjs/tween.js";
 import { FIBER_KEYS, FIBER_COLORS } from "../sim/types";
 import type { FiberState } from "../sim/types";
 import { FiberModel } from "../sim/FiberModel";
 import { ACTIVITIES } from "../sim/activities";
+
 
 export interface FiberRopeOptions {
   x: number;
@@ -16,49 +16,57 @@ interface FiberHolder {
   key: keyof FiberState;
   color: string;
   active: boolean;
-  gfx: Graphics;
-  label: Text;
+  circleEl: HTMLDivElement;
+  labelEl: HTMLDivElement;
   homeX: number;
-  awayX: number;
+  currentY: number;
 }
 
 const LOG_WIDTH = 280;
 const LOG_HEIGHT = 18;
-const LOG_RADIUS = 9;
-const HOLDER_RADIUS = 18;
 const LOG_BASE_Y = 200;
 const LOG_TOP_Y = 80;
+const HOLDER_RADIUS = 18;
 const HOLDER_Y = 240;
 const HOLDER_AWAY_OFFSET_Y = 60;
 
-export class FiberRope extends Container {
-  private _options: FiberRopeOptions;
+export class FiberRope {
+  el: HTMLDivElement;
   private tweenGroup: Group;
   private holders: FiberHolder[] = [];
-  private logGfx: Graphics;
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
   private logY: number;
   private fibers: FiberState;
-  private willpowerLabel: Text;
-  private activityListContainer: Container;
-  private presetsContainer: Container;
+  private willpowerLabel: HTMLDivElement;
+  private activityListEl: HTMLDivElement;
+  private presetsEl: HTMLDivElement;
   private presetsVisible = false;
+  private optionsWidth: number;
 
   constructor(options: FiberRopeOptions) {
-    super();
-
-    this._options = options;
-    this.x = options.x;
-    this.y = options.y;
+    this.optionsWidth = options.width;
     this.tweenGroup = new Group();
     this.fibers = FiberModel.defaultFibers();
     this.logY = LOG_TOP_Y;
 
-    // Log
-    this.logGfx = new Graphics();
-    this.addChild(this.logGfx);
-    this.drawLog();
+    this.el = document.createElement("div");
+    this.el.style.position = "absolute";
+    this.el.style.left = `${options.x}px`;
+    this.el.style.top = `${options.y}px`;
+    this.el.style.width = `${options.width}px`;
+    this.el.style.height = `${options.height}px`;
 
-    // Holders
+    // Canvas for log + ropes
+    this.canvas = document.createElement("canvas");
+    this.canvas.width = options.width;
+    this.canvas.height = options.height;
+    this.canvas.style.position = "absolute";
+    this.canvas.style.pointerEvents = "none";
+    this.ctx = this.canvas.getContext("2d")!;
+    this.el.appendChild(this.canvas);
+
+    // Create holder circles + labels
     const spacing = LOG_WIDTH / (FIBER_KEYS.length + 1);
     const startX = (options.width - LOG_WIDTH) / 2;
 
@@ -66,83 +74,72 @@ export class FiberRope extends Container {
       const hx = startX + spacing * (i + 1);
       const color = FIBER_COLORS[key];
 
-      const gfx = new Graphics();
-      gfx.circle(0, 0, HOLDER_RADIUS).fill(color);
-      gfx.x = hx;
-      gfx.y = HOLDER_Y;
-      this.addChild(gfx);
+      const circleEl = document.createElement("div");
+      circleEl.style.position = "absolute";
+      circleEl.style.width = `${HOLDER_RADIUS * 2}px`;
+      circleEl.style.height = `${HOLDER_RADIUS * 2}px`;
+      circleEl.style.borderRadius = "50%";
+      circleEl.style.background = color;
+      circleEl.style.left = `${hx - HOLDER_RADIUS}px`;
+      circleEl.style.top = `${HOLDER_Y - HOLDER_RADIUS}px`;
+      circleEl.style.cursor = "pointer";
+      this.el.appendChild(circleEl);
 
-      // Fiber name below circle
-      const labelStyle = new TextStyle({
-        fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 10,
-        fill: color,
-        fontWeight: "bold",
-      });
-      const label = new Text({
-        text: key.charAt(0).toUpperCase() + key.slice(0, 4),
-        style: labelStyle,
-      });
-      label.anchor.set(0.5, 0);
-      label.x = hx;
-      label.y = HOLDER_Y + HOLDER_RADIUS + 4;
-      this.addChild(label);
-
-      // "Rope" line from holder to log
-      const ropeGfx = new Graphics();
-      this.addChild(ropeGfx);
+      const labelEl = document.createElement("div");
+      labelEl.style.position = "absolute";
+      labelEl.style.left = `${hx}px`;
+      labelEl.style.top = `${HOLDER_Y + HOLDER_RADIUS + 4}px`;
+      labelEl.style.transform = "translateX(-50%)";
+      labelEl.style.fontSize = "10px";
+      labelEl.style.fontWeight = "bold";
+      labelEl.style.color = color;
+      labelEl.textContent = key.charAt(0).toUpperCase() + key.slice(0, 4);
+      this.el.appendChild(labelEl);
 
       const holder: FiberHolder = {
-        key,
-        color,
-        active: true,
-        gfx,
-        label,
+        key, color, active: true,
+        circleEl, labelEl,
         homeX: hx,
-        awayX: hx + (i < 2 ? -80 : 80),
+        currentY: HOLDER_Y,
       };
 
-      // Click to release
-      gfx.eventMode = "static";
-      gfx.cursor = "pointer";
-      gfx.on("pointerdown", () => {
-        if (holder.active) {
-          this.releaseHolder(holder);
-        }
+      circleEl.addEventListener("click", () => {
+        if (holder.active) this.releaseHolder(holder);
       });
 
       this.holders.push(holder);
     });
 
-    // Willpower total
-    const wpStyle = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 20,
-      fill: "#e0e0e0",
-      fontWeight: "bold",
-    });
-    this.willpowerLabel = new Text({ text: "", style: wpStyle });
-    this.willpowerLabel.anchor.set(0.5, 0);
-    this.willpowerLabel.x = options.width / 2;
-    this.willpowerLabel.y = 10;
-    this.addChild(this.willpowerLabel);
+    // Willpower label
+    this.willpowerLabel = document.createElement("div");
+    this.willpowerLabel.style.position = "absolute";
+    this.willpowerLabel.style.left = "50%";
+    this.willpowerLabel.style.top = "10px";
+    this.willpowerLabel.style.transform = "translateX(-50%)";
+    this.willpowerLabel.style.fontSize = "20px";
+    this.willpowerLabel.style.fontWeight = "bold";
+    this.willpowerLabel.style.color = "#e0e0e0";
+    this.el.appendChild(this.willpowerLabel);
 
-    // Activity affordability list
-    this.activityListContainer = new Container();
-    this.activityListContainer.x = options.width - 180;
-    this.activityListContainer.y = 60;
-    this.addChild(this.activityListContainer);
+    // Activity list
+    this.activityListEl = document.createElement("div");
+    this.activityListEl.style.position = "absolute";
+    this.activityListEl.style.right = "0";
+    this.activityListEl.style.top = "60px";
+    this.activityListEl.style.fontSize = "11px";
+    this.el.appendChild(this.activityListEl);
 
     // Presets
-    this.presetsContainer = new Container();
-    this.presetsContainer.x = 10;
-    this.presetsContainer.y = HOLDER_Y + HOLDER_AWAY_OFFSET_Y + 60;
-    this.presetsContainer.visible = false;
-    this.addChild(this.presetsContainer);
+    this.presetsEl = document.createElement("div");
+    this.presetsEl.style.position = "absolute";
+    this.presetsEl.style.left = "10px";
+    this.presetsEl.style.top = `${HOLDER_Y + HOLDER_AWAY_OFFSET_Y + 60}px`;
+    this.presetsEl.style.display = "none";
     this.createPresets();
+    this.el.appendChild(this.presetsEl);
 
     this.updateDisplay();
-    this.drawRopes();
+    this.drawCanvas();
 
     // Drive tweens
     const animate = () => {
@@ -152,38 +149,34 @@ export class FiberRope extends Container {
     requestAnimationFrame(animate);
   }
 
-  /** Show the preset buttons (called after 2 holders removed) */
   showPresets(): void {
     this.presetsVisible = true;
-    this.presetsContainer.visible = true;
+    this.presetsEl.style.display = "flex";
   }
 
-  /** Get count of released holders */
   getReleasedCount(): number {
     return this.holders.filter((h) => !h.active).length;
   }
 
-  // ─── Core ─────────────────────────────────────────────────────
-
   private releaseHolder(holder: FiberHolder): void {
     holder.active = false;
-    holder.gfx.eventMode = "none";
-    holder.gfx.cursor = "default";
-    holder.gfx.alpha = 0.3;
+    holder.circleEl.style.cursor = "default";
+    holder.circleEl.style.opacity = "0.3";
 
-    // Animate stepping away
-    const obj = { y: holder.gfx.y };
+    const startY = holder.currentY;
+    const targetY = HOLDER_Y + HOLDER_AWAY_OFFSET_Y;
+    const obj = { y: startY };
     const tween = new Tween(obj)
-      .to({ y: HOLDER_Y + HOLDER_AWAY_OFFSET_Y }, 400)
+      .to({ y: targetY }, 400)
       .onUpdate(() => {
-        holder.gfx.y = obj.y;
-        holder.label.y = obj.y + HOLDER_RADIUS + 4;
+        holder.currentY = obj.y;
+        holder.circleEl.style.top = `${obj.y - HOLDER_RADIUS}px`;
+        holder.labelEl.style.top = `${obj.y + HOLDER_RADIUS + 4}px`;
       })
       .onComplete(() => {
         this.updateFibersFromHolders();
         this.updateDisplay();
         this.animateLog();
-        this.drawRopes();
 
         if (this.getReleasedCount() >= 2 && !this.presetsVisible) {
           this.showPresets();
@@ -196,60 +189,40 @@ export class FiberRope extends Container {
   private updateFibersFromHolders(): void {
     const fibers = FiberModel.defaultFibers();
     for (const holder of this.holders) {
-      if (!holder.active) {
-        fibers[holder.key] = 0;
-      }
+      if (!holder.active) fibers[holder.key] = 0;
     }
     this.fibers = fibers;
   }
 
   private updateDisplay(): void {
     const total = FiberModel.totalWillpower(this.fibers);
-    this.willpowerLabel.text = `Total Willpower: ${total}`;
+    this.willpowerLabel.textContent = `Total Willpower: ${total}`;
     this.updateActivityList(total);
   }
 
   private updateActivityList(totalWP: number): void {
-    this.activityListContainer.removeChildren();
+    this.activityListEl.innerHTML = "";
 
-    // Show a subset of interesting activities
     const shown = ACTIVITIES.filter((a) =>
-      [
-        "morning-workout",
-        "deep-work",
-        "tiktok",
-        "the-thing-youve-been-avoiding",
-        "meditating",
-        "evening-gym",
-      ].includes(a.id),
+      ["morning-workout", "deep-work", "tiktok", "the-thing-youve-been-avoiding", "meditating", "evening-gym"].includes(a.id),
     );
 
-    const headerStyle = new TextStyle({
-      fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-      fontSize: 12,
-      fill: "#9ca3af",
-      fontWeight: "bold",
-    });
-    const header = new Text({ text: "Activities:", style: headerStyle });
-    header.y = 0;
-    this.activityListContainer.addChild(header);
+    const header = document.createElement("div");
+    header.style.color = "#9ca3af";
+    header.style.fontWeight = "bold";
+    header.style.fontSize = "12px";
+    header.style.marginBottom = "4px";
+    header.textContent = "Activities:";
+    this.activityListEl.appendChild(header);
 
-    shown.forEach((activity, i) => {
+    shown.forEach((activity) => {
       const cost = Math.max(0, activity.startingEnergy);
       const affordable = totalWP >= cost;
-      const color = affordable ? "#22c55e" : "#ef4444";
-
-      const style = new TextStyle({
-        fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: 11,
-        fill: color,
-      });
-      const text = new Text({
-        text: `${activity.name} (${cost})`,
-        style,
-      });
-      text.y = 20 + i * 18;
-      this.activityListContainer.addChild(text);
+      const item = document.createElement("div");
+      item.style.color = affordable ? "#22c55e" : "#ef4444";
+      item.style.marginBottom = "2px";
+      item.textContent = `${activity.name} (${cost})`;
+      this.activityListEl.appendChild(item);
     });
   }
 
@@ -264,35 +237,37 @@ export class FiberRope extends Container {
       .to({ y: targetY }, 500)
       .onUpdate(() => {
         this.logY = obj.y;
-        this.drawLog();
-        this.drawRopes();
+        this.drawCanvas();
       });
     this.tweenGroup.add(tween);
     tween.start();
   }
 
-  private drawLog(): void {
-    const cx = this._options.width / 2;
-    this.logGfx.clear();
-    this.logGfx
-      .roundRect(cx - LOG_WIDTH / 2, this.logY, LOG_WIDTH, LOG_HEIGHT, LOG_RADIUS)
-      .fill(0x8b5e3c);
-    // Wood grain lines
-    this.logGfx
-      .moveTo(cx - LOG_WIDTH / 2 + 10, this.logY + 6)
-      .lineTo(cx + LOG_WIDTH / 2 - 10, this.logY + 6);
-    this.logGfx.stroke({ width: 1, color: 0x6d4c2a });
-    this.logGfx
-      .moveTo(cx - LOG_WIDTH / 2 + 20, this.logY + 12)
-      .lineTo(cx + LOG_WIDTH / 2 - 20, this.logY + 12);
-    this.logGfx.stroke({ width: 1, color: 0x6d4c2a });
-  }
+  private drawCanvas(): void {
+    const ctx = this.ctx;
+    const w = this.optionsWidth;
+    ctx.clearRect(0, 0, w, 400);
 
-  private drawRopes(): void {
-    // Remove old rope lines — we redraw via a dedicated graphics layer
-    // We'll reuse existing rope approach: draw lines from each active holder to log
-    // For simplicity, draw directly into logGfx after the log
-    const cx = this._options.width / 2;
+    const cx = w / 2;
+
+    // Log
+    ctx.fillStyle = "#8b5e3c";
+    this.roundRect(ctx, cx - LOG_WIDTH / 2, this.logY, LOG_WIDTH, LOG_HEIGHT, 9);
+    ctx.fill();
+
+    // Wood grain
+    ctx.strokeStyle = "#6d4c2a";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - LOG_WIDTH / 2 + 10, this.logY + 6);
+    ctx.lineTo(cx + LOG_WIDTH / 2 - 10, this.logY + 6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - LOG_WIDTH / 2 + 20, this.logY + 12);
+    ctx.lineTo(cx + LOG_WIDTH / 2 - 20, this.logY + 12);
+    ctx.stroke();
+
+    // Ropes from holders to log
     const spacing = LOG_WIDTH / (FIBER_KEYS.length + 1);
     const startX = cx - LOG_WIDTH / 2;
 
@@ -302,19 +277,20 @@ export class FiberRope extends Container {
 
       const ropeTopX = startX + spacing * (i + 1);
       const ropeTopY = this.logY + LOG_HEIGHT;
-      this.logGfx
-        .moveTo(ropeTopX, ropeTopY)
-        .lineTo(holder.gfx.x, holder.gfx.y - HOLDER_RADIUS);
-      this.logGfx.stroke({ width: 2, color: holder.color });
+      ctx.strokeStyle = holder.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(ropeTopX, ropeTopY);
+      ctx.lineTo(holder.homeX, holder.currentY - HOLDER_RADIUS);
+      ctx.stroke();
     }
   }
 
-  // ─── Presets ──────────────────────────────────────────────────
-
   private createPresets(): void {
-    const isNarrow = this._options.width < 500;
+    const isNarrow = this.optionsWidth < 500;
     const btnW = isNarrow ? 80 : 120;
     const btnSpacing = isNarrow ? 90 : 130;
+    this.presetsEl.style.gap = `${btnSpacing - btnW}px`;
 
     const presets = [
       { label: "Gap Year", fiber: "professional" as keyof FiberState },
@@ -322,62 +298,54 @@ export class FiberRope extends Container {
       { label: "Breakup", fiber: "family" as keyof FiberState },
     ];
 
-    presets.forEach((preset, i) => {
-      const c = new Container();
-      c.x = i * btnSpacing;
-
-      const bg = new Graphics();
-      bg.roundRect(0, 0, btnW, 36, 6).fill(0x374151);
-      c.addChild(bg);
-
-      const style = new TextStyle({
-        fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif',
-        fontSize: isNarrow ? 11 : 13,
-        fill: "#e0e0e0",
-        fontWeight: "bold",
-      });
-      const label = new Text({ text: preset.label, style });
-      label.anchor.set(0.5);
-      label.x = btnW / 2;
-      label.y = 18;
-      c.addChild(label);
-
-      c.eventMode = "static";
-      c.cursor = "pointer";
-      c.hitArea = {
-        contains: (px: number, py: number) =>
-          px >= 0 && px <= btnW && py >= 0 && py <= 36,
-      };
-      c.on("pointerdown", () => this.applyPreset(preset.fiber));
-
-      this.presetsContainer.addChild(c);
+    presets.forEach((preset) => {
+      const btn = document.createElement("button");
+      btn.className = "game-btn";
+      btn.textContent = preset.label;
+      btn.style.minWidth = `${btnW}px`;
+      btn.style.height = "36px";
+      btn.style.fontSize = isNarrow ? "11px" : "13px";
+      btn.style.background = "#374151";
+      btn.addEventListener("click", () => this.applyPreset(preset.fiber));
+      this.presetsEl.appendChild(btn);
     });
   }
 
   private applyPreset(fiberKey: keyof FiberState): void {
-    // Reset all holders
     for (const holder of this.holders) {
       holder.active = true;
-      holder.gfx.alpha = 1;
-      holder.gfx.eventMode = "static";
-      holder.gfx.cursor = "pointer";
-      holder.gfx.y = HOLDER_Y;
-      holder.label.y = HOLDER_Y + HOLDER_RADIUS + 4;
+      holder.circleEl.style.opacity = "1";
+      holder.circleEl.style.cursor = "pointer";
+      holder.currentY = HOLDER_Y;
+      holder.circleEl.style.top = `${HOLDER_Y - HOLDER_RADIUS}px`;
+      holder.labelEl.style.top = `${HOLDER_Y + HOLDER_RADIUS + 4}px`;
     }
 
     this.fibers = FiberModel.defaultFibers();
     this.logY = LOG_TOP_Y;
-    this.drawLog();
-    this.drawRopes();
+    this.drawCanvas();
     this.updateDisplay();
 
-    // Now release the specified fiber
     const target = this.holders.find((h) => h.key === fiberKey);
     if (target) {
-      // Small delay for visual clarity
       setTimeout(() => this.releaseHolder(target), 300);
     }
   }
 
+  private roundRect(
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number, w: number, h: number, r: number,
+  ): void {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
 }
-

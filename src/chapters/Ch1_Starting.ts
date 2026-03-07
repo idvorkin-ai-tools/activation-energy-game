@@ -1,4 +1,3 @@
-import { Application } from "pixi.js";
 import { Scene } from "../engine/Scene";
 import { TextBox } from "../engine/TextBox";
 import { Button } from "../engine/Button";
@@ -11,11 +10,10 @@ function delay(ms: number): Promise<void> {
 }
 
 export class Ch1_Starting extends Scene {
-  onComplete: (() => void) | null = null;
   private game: Game;
 
-  constructor(app: Application, game: Game) {
-    super(app);
+  constructor(game: Game) {
+    super();
     this.game = game;
   }
 
@@ -23,14 +21,13 @@ export class Ch1_Starting extends Scene {
     const textX = 80;
     const textMaxWidth = this.width * 0.7;
 
-    // Text positioned in upper third for intro
     const textBox = new TextBox({
       text: "Every activity has a price tag. Not in money \u2014 in willpower.",
       x: textX,
       y: this.height * 0.08,
       maxWidth: textMaxWidth,
     });
-    this.container.addChild(textBox);
+    this.el.appendChild(textBox.el);
 
     await textBox.show();
     await delay(1500);
@@ -45,7 +42,6 @@ export class Ch1_Starting extends Scene {
     await textBox.show();
     await delay(1500);
 
-    // Create the drag-to-number-line interaction
     const lineWidth = Math.min(this.width - 120, 800);
     const lineX = (this.width - lineWidth) / 2;
 
@@ -76,24 +72,20 @@ export class Ch1_Starting extends Scene {
         allPlacedResolve();
       },
     });
-    this.container.addChild(numberLine);
+    this.el.appendChild(numberLine.el);
 
     textBox.setText("Go ahead. Where do you think each one goes?");
     await textBox.show();
 
-    // Skip button appears after 8s, resolves the interaction gate
-    const cleanupSkip = createSkipButton(this.container, this.width, this.height, allPlacedResolve!);
+    const cleanupSkip = createSkipButton(this.el, this.width, this.height, allPlacedResolve!);
 
-    // Wait for user to place all cards (or skip)
     await allPlacedPromise;
     cleanupSkip();
     await delay(500);
 
-    // Reveal correct positions
     await numberLine.reveal();
     await delay(800);
 
-    // Move text to lower area for post-interaction commentary
     textBox.y = this.height * 0.62;
 
     textBox.setText("TikTok is at negative fifty.");
@@ -124,7 +116,6 @@ export class Ch1_Starting extends Scene {
     await textBox.show();
     await delay(1200);
 
-    // Show "Next" button
     const nextButton = new Button({
       text: "Next \u2192",
       x: this.width - 160,
@@ -133,7 +124,7 @@ export class Ch1_Starting extends Scene {
         if (this.onComplete) this.onComplete();
       },
     });
-    this.container.addChild(nextButton);
+    this.el.appendChild(nextButton.el);
   }
 
   async exit(): Promise<void> {

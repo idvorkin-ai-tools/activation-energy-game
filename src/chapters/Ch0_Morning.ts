@@ -1,4 +1,3 @@
-import { Application } from "pixi.js";
 import { Scene } from "../engine/Scene";
 import { TextBox } from "../engine/TextBox";
 import { Button } from "../engine/Button";
@@ -10,11 +9,10 @@ function delay(ms: number): Promise<void> {
 }
 
 export class Ch0_Morning extends Scene {
-  onComplete: (() => void) | null = null;
   private game: Game;
 
-  constructor(app: Application, game: Game) {
-    super(app);
+  constructor(game: Game) {
+    super();
     this.game = game;
   }
 
@@ -26,29 +24,26 @@ export class Ch0_Morning extends Scene {
     // Create character lying down at bottom-center
     const character = new Character();
     character.setPosition(this.width / 2, this.height * 0.4);
-    character.container.rotation = Math.PI / 2; // lying down
-    this.container.addChild(character.container);
+    character.el.style.transform = "rotate(90deg)";
+    this.el.appendChild(character.el);
 
-    // Create a single reusable TextBox
     const textBox = new TextBox({
       text: "It's 6am. You just woke up.",
       x: textX,
       y: textY,
       maxWidth: textMaxWidth,
     });
-    this.container.addChild(textBox);
+    this.el.appendChild(textBox.el);
 
-    // Scene fades in with character lying down
     await textBox.show();
     await delay(1200);
 
     // Character sits up / stands
-    character.container.rotation = 0;
+    character.el.style.transform = "";
     character.setExpression("neutral");
     await character.walkTo(this.width / 2, this.height * 0.35, 800);
     await delay(600);
 
-    // "You feel pretty good"
     textBox.setText("You feel... pretty good, actually. Clear-headed. Ready to do things.");
     await textBox.show();
     await delay(1500);
@@ -73,7 +68,6 @@ export class Ch0_Morning extends Scene {
     await textBox.show();
     await delay(800);
 
-    // Brief flash to tired and back
     character.setExpression("tired");
     await delay(600);
     character.setExpression("neutral");
@@ -87,7 +81,6 @@ export class Ch0_Morning extends Scene {
     await textBox.show();
     await delay(1000);
 
-    // Show "Next" button
     const nextButton = new Button({
       text: "Next \u2192",
       x: this.width - 160,
@@ -96,7 +89,7 @@ export class Ch0_Morning extends Scene {
         if (this.onComplete) this.onComplete();
       },
     });
-    this.container.addChild(nextButton);
+    this.el.appendChild(nextButton.el);
   }
 
   async exit(): Promise<void> {

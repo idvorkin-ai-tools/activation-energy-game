@@ -1,4 +1,3 @@
-import { Application, Text, TextStyle } from "pixi.js";
 import { Scene } from "../engine/Scene";
 import { TextBox } from "../engine/TextBox";
 import { Button } from "../engine/Button";
@@ -10,39 +9,26 @@ function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/**
- * Movie stopping curve: starts at 35, peaks around 40 at 90min,
- * then drops to near-zero by 120min (natural end).
- */
 function movieStoppingEnergy(timeMinutes: number): number {
   if (timeMinutes <= 90) {
-    // Gradual rise from 35 to 40
     return 35 + (5 * timeMinutes) / 90;
   } else if (timeMinutes <= 120) {
-    // Rapid drop from 40 to ~2
     const t = (timeMinutes - 90) / 30;
     return 40 * (1 - t) + 2 * t;
   } else {
-    // After credits, near-zero
     return Math.max(0, 2 - (timeMinutes - 120) * 0.1);
   }
 }
 
-/**
- * TikTok stopping curve: starts at 40, stays flat around 38-40.
- * Engineered to never give you a stopping point.
- */
 function tiktokStoppingEnergy(timeMinutes: number): number {
-  // Slight oscillation to look organic, but essentially flat
   return 38 + 2 * Math.sin(timeMinutes * 0.05);
 }
 
 export class Ch2_Stopping extends Scene {
-  onComplete: (() => void) | null = null;
   private game: Game;
 
-  constructor(app: Application, game: Game) {
-    super(app);
+  constructor(game: Game) {
+    super();
     this.game = game;
   }
 
@@ -50,14 +36,13 @@ export class Ch2_Stopping extends Scene {
     const textX = 80;
     const textMaxWidth = this.width * 0.7;
 
-    // Text in upper area
     const textBox = new TextBox({
       text: "Starting things is hard. But stopping things? That's where it gets interesting.",
       x: textX,
       y: this.height * 0.05,
       maxWidth: textMaxWidth,
     });
-    this.container.addChild(textBox);
+    this.el.appendChild(textBox.el);
 
     await textBox.show();
     await delay(1500);
@@ -95,37 +80,25 @@ export class Ch2_Stopping extends Scene {
       width: scrubberWidth,
       height: scrubberHeight,
       curves: [
-        {
-          label: "Movie",
-          color: "#60a5fa",
-          getStoppingEnergy: movieStoppingEnergy,
-        },
-        {
-          label: "TikTok",
-          color: "#f87171",
-          getStoppingEnergy: tiktokStoppingEnergy,
-        },
+        { label: "Movie", color: "#60a5fa", getStoppingEnergy: movieStoppingEnergy },
+        { label: "TikTok", color: "#f87171", getStoppingEnergy: tiktokStoppingEnergy },
       ],
       maxTimeMinutes: 150,
     });
-    this.container.addChild(scrubber);
+    this.el.appendChild(scrubber.el);
 
     scrubber.onInteract = () => {
-      // Wait a few seconds of interaction, then resolve
       setTimeout(() => interactResolve(), 3000);
     };
 
     textBox.setText("Drag the timeline. Watch what happens.");
     await textBox.show();
 
-    // Skip button appears after 8s, resolves the interaction gate
-    const cleanupSkip = createSkipButton(this.container, this.width, this.height, interactResolve!);
+    const cleanupSkip = createSkipButton(this.el, this.width, this.height, interactResolve!);
 
-    // Wait for user to interact (or skip)
     await interactPromise;
     cleanupSkip();
 
-    // Move text to lower area for commentary
     textBox.y = this.height * 0.65;
 
     textBox.setText("See that? The movie ends. It gives you a natural exit \u2014 the credits roll, the lights come on.");
@@ -142,20 +115,17 @@ export class Ch2_Stopping extends Scene {
     await textBox.show();
     await delay(2000);
 
-    // Show the equation
-    const equationStyle = new TextStyle({
-      fontFamily: '"Courier New", monospace',
-      fontSize: 18,
-      fill: "#fbbf24",
-      fontWeight: "bold",
-    });
-    const equation = new Text({
-      text: "Activation Energy = Stopping Energy (current) + Starting Energy (new)",
-      style: equationStyle,
-    });
-    equation.x = textX;
-    equation.y = textBox.y - 36;
-    this.container.addChild(equation);
+    // Show the equation as a styled span
+    const equation = document.createElement("div");
+    equation.style.position = "absolute";
+    equation.style.left = `${textX}px`;
+    equation.style.top = `${this.height * 0.65 - 36}px`;
+    equation.style.fontFamily = '"Courier New", monospace';
+    equation.style.fontSize = "18px";
+    equation.style.color = "#fbbf24";
+    equation.style.fontWeight = "bold";
+    equation.textContent = "Activation Energy = Stopping Energy (current) + Starting Energy (new)";
+    this.el.appendChild(equation);
 
     await delay(1500);
 
@@ -177,7 +147,6 @@ export class Ch2_Stopping extends Scene {
     await textBox.show();
     await delay(1200);
 
-    // Show "Next" button
     const nextButton = new Button({
       text: "Next \u2192",
       x: this.width - 160,
@@ -186,7 +155,7 @@ export class Ch2_Stopping extends Scene {
         if (this.onComplete) this.onComplete();
       },
     });
-    this.container.addChild(nextButton);
+    this.el.appendChild(nextButton.el);
   }
 
   async exit(): Promise<void> {
