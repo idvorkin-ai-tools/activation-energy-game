@@ -82,6 +82,22 @@ Tween.js is used for animated values (willpower bar, card reveals, cost floats).
 
 Scene transitions use CSS `opacity` with `transition` property. Each interaction component that uses tweens also runs its own `requestAnimationFrame` loop for its local tween group.
 
+## Page Conventions (MUST follow for every new page)
+
+Every lesson and playground page MUST have:
+
+1. **Standard header** — 48px bar with breadcrumb left, About link right:
+   ```html
+   <header id="header">
+     <span class="header-title"><a href="/">Explorable Explanations</a> / Page Name</span>
+     <a id="about-link" href="#">About</a>
+   </header>
+   ```
+2. **About modal** — clicking About opens a modal with page description, tech note, and GitHub link. Uses the same modal HTML/CSS/JS pattern as `lessons/energy/index.html`.
+3. **Hub link** — the "Explorable Explanations" text in the header always links back to `/`.
+4. **Hub card** — every new page gets a card added to the hub (`index.html`) in the appropriate section (Lessons or Playgrounds).
+5. **Vite entry** — every new HTML page gets added to `vite.config.ts` `build.rollupOptions.input`.
+
 ## Key Conventions
 
 - **TypeScript strict mode** with ES2020 target

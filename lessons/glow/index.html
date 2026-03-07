@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Energy, Not Time</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      color: #d0d0e0;
+      font-family: Georgia, 'Times New Roman', serif;
+      line-height: 1.8;
+      overflow-x: hidden;
+    }
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      padding: 0 20px;
+      background: #16162a;
+      border-bottom: 1px solid #2a2a4a;
+      font-family: system-ui, sans-serif;
+    }
+    .header-title {
+      color: #e0e0ff;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .header-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .header-title a:hover {
+      color: #aaaaee;
+    }
+    #about-link {
+      color: #8888cc;
+      font-family: system-ui, sans-serif;
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    #about-link:hover { color: #aaaaee; }
+    #about-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s ease;
+    }
+    #about-modal.modal-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+    }
+    .modal-card {
+      position: relative;
+      background: #1e1e3a;
+      border: 1px solid #3a3a5c;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 480px;
+      width: 90%;
+      color: #d0d0e8;
+      font-family: system-ui, sans-serif;
+      line-height: 1.6;
+    }
+    .modal-card h2 { color: #e0e0ff; font-size: 20px; margin-bottom: 16px; }
+    .modal-card p { margin-bottom: 12px; font-size: 14px; }
+    .modal-card a { color: #7b7bdd; }
+    .modal-card a:hover { color: #9b9bff; }
+    #modal-close {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: #8888aa;
+      font-size: 24px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    #modal-close:hover { color: #ccccee; }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 60px 24px 120px;
+    }
+    h1 {
+      font-size: 2.4rem;
+      color: #e0e0ff;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      color: #64748b;
+      font-size: 1rem;
+      margin-bottom: 48px;
+      font-style: italic;
+    }
+    p {
+      font-size: 1.15rem;
+      margin-bottom: 28px;
+    }
+    .big {
+      font-size: 1.5rem;
+      color: #e0e0ff;
+      font-weight: bold;
+      margin: 40px 0;
+      line-height: 1.5;
+    }
+    .dim { color: #64748b; }
+    .bright { color: #fbbf24; }
+    .strike { text-decoration: line-through; color: #64748b; }
+    .highlight {
+      background: rgba(251, 191, 36, 0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fbbf24;
+    }
+    .separator {
+      border: none;
+      border-top: 1px solid #2a2a4a;
+      margin: 48px 0;
+    }
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 36px 0;
+    }
+    .col {
+      padding: 20px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+    .col-bad {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .col-good {
+      background: rgba(74, 222, 128, 0.08);
+      border: 1px solid rgba(74, 222, 128, 0.2);
+    }
+    .col h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+    .col-bad h3 { color: #ef4444; }
+    .col-good h3 { color: #4ade80; }
+    .col li {
+      list-style: none;
+      margin-bottom: 6px;
+    }
+    .col-bad li::before { content: "6am  "; color: #64748b; font-size: 0.8rem; font-family: monospace; }
+    .col-good li::before { content: "6am  "; color: #64748b; font-size: 0.8rem; font-family: monospace; }
+    .col li:nth-child(2)::before { content: "8am  "; }
+    .col li:nth-child(3)::before { content: "10am "; }
+    .col li:nth-child(4)::before { content: "1pm  "; }
+    .col li:nth-child(5)::before { content: "3pm  "; }
+    .col li:nth-child(6)::before { content: "6pm  "; }
+    .kicker {
+      text-align: center;
+      font-size: 1.2rem;
+      color: #94a3b8;
+      margin: 48px 0;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <header id="header">
+    <span class="header-title"><a href="/">Explorable Explanations</a> / Energy, Not Time</span>
+    <a id="about-link" href="#">About</a>
+  </header>
+
+  <div id="about-modal" class="modal-hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <button id="modal-close">&times;</button>
+      <h2>Energy, Not Time</h2>
+      <p>An explorable explanation about why managing energy matters more than managing time. Inspired by Nicky Case's explorable explanations.</p>
+      <p>Built with HTML/CSS/Canvas — all graphics are procedurally drawn, no sprites.</p>
+      <p><a href="https://github.com/idvorkin-ai-tools/activation-energy-game" target="_blank" rel="noopener">View on GitHub</a></p>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1>Energy, Not Time</h1>
+    <p class="subtitle">You already know this. You just haven't named it.</p>
+
+    <p>You and your most productive friend have the <highlight class="highlight">exact same 24 hours</highlight>.</p>
+
+    <p>Same commute. Same meetings. Same dishes. The time is identical. So why does their day feel like a win and yours feel like surviving?</p>
+
+    <p class="big">It was never about time.<br>It's about energy.</p>
+
+    <hr class="separator">
+
+    <p>An hour of deep work at <span class="bright">9am</span> costs almost nothing.<br>
+    The same hour at <span class="dim">4pm</span> costs everything you have left.</p>
+
+    <p>Answering emails takes 20 minutes either way. But after three hard conversations, those 20 minutes feel like running underwater.</p>
+
+    <p><strong>Time is the container. Energy is what's inside.</strong> You can't manage what's inside by resizing the container.</p>
+
+    <hr class="separator">
+
+    <p>Here's the same Tuesday, two ways:</p>
+
+    <div class="comparison">
+      <div class="col col-bad">
+        <h3>Optimized for time</h3>
+        <ul>
+          <li>Check email</li>
+          <li>Hard project</li>
+          <li>Meetings</li>
+          <li>More email</li>
+          <li>Admin tasks</li>
+          <li><span class="dim">Collapse on couch</span></li>
+        </ul>
+      </div>
+      <div class="col col-good">
+        <h3>Optimized for energy</h3>
+        <ul>
+          <li>Walk + coffee</li>
+          <li>Hard project</li>
+          <li>Easy admin</li>
+          <li>Social lunch</li>
+          <li>Meetings</li>
+          <li><span class="bright">Cook dinner, feel human</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <p>Same six tasks. Same six hours. One person is destroyed. The other has energy left to <em>live</em>.</p>
+
+    <p>The difference isn't discipline. It isn't hustle. It's <span class="highlight">sequence</span>.</p>
+
+    <hr class="separator">
+
+    <p class="big">Three things you already know but keep ignoring:</p>
+
+    <p><strong>1. Hard things go first.</strong> Not because of discipline — because they're cheaper when you're full. A $20 task at 9am becomes a $60 task at 4pm.</p>
+
+    <p><strong>2. Some tasks give energy back.</strong> Exercise. Creative work. Good conversation. These aren't breaks from productivity — they're <em>fuel</em> for it.</p>
+
+    <p><strong>3. Sequence is everything.</strong> Three drains in a row isn't 3x the cost. It's 10x. One generator between two drains cuts the total cost in half.</p>
+
+    <hr class="separator">
+
+    <p>Stop asking <span class="strike">Do I have time for this?</span></p>
+    <p>Start asking <span class="highlight">Do I have energy for this — right now?</span></p>
+
+    <p class="kicker">Same hours. Different day.</p>
+  </div>
+
+  <script>
+    const modal = document.getElementById('about-modal');
+    document.getElementById('about-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      modal.classList.remove('modal-hidden');
+    });
+    document.getElementById('modal-close').addEventListener('click', () => {
+      modal.classList.add('modal-hidden');
+    });
+    modal.querySelector('.modal-backdrop').addEventListener('click', () => {
+      modal.classList.add('modal-hidden');
+    });
+  </script>
+</body>
+</html>
