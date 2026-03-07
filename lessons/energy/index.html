@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Activation Energy: The Game</title>
+    <meta name="description" content="An interactive game about willpower, habits, and why you doom-scroll at 2am" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header id="header">
+      <span class="header-title"><a href="/" style="color:inherit;text-decoration:none">Explorable Explanations</a> / Activation Energy</span>
+      <a id="about-link" href="#">About</a>
+    </header>
+    <div id="game"></div>
+
+    <div id="about-modal" class="modal-hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <button id="modal-close">&times;</button>
+        <h2>Activation Energy: The Game</h2>
+        <p>An interactive explorable explanation about willpower, habits, and why you doom-scroll at 2am. Inspired by Nicky Case's explorable explanations.</p>
+        <p>Built with HTML/CSS/Canvas — all graphics are procedurally drawn, no sprites.</p>
+        <p><a href="https://github.com/idvorkin-ai-tools/activation-energy-game" target="_blank" rel="noopener">View on GitHub</a></p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/lessons/energy/main.ts"></script>
+  </body>
+</html>

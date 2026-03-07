@@ -3,28 +3,119 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Activation Energy: The Game</title>
-    <meta name="description" content="An interactive game about willpower, habits, and why you doom-scroll at 2am" />
-    <link rel="stylesheet" href="/src/style.css" />
+    <title>Explorable Explanations</title>
+    <meta name="description" content="Interactive explorable explanations about psychology, habits, and how the mind works" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        background: #1a1a2e;
+        color: #e0e0e0;
+        font-family: system-ui, sans-serif;
+        min-height: 100vh;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        height: 48px;
+        padding: 0 20px;
+        background: #16162a;
+        border-bottom: 1px solid #2a2a4a;
+      }
+      .header-title {
+        color: #e0e0ff;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+      main {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 48px 20px;
+      }
+      h1 {
+        font-size: 2rem;
+        color: #e0e0ff;
+        margin-bottom: 8px;
+      }
+      .subtitle {
+        color: #94a3b8;
+        font-size: 1.1rem;
+        margin-bottom: 40px;
+      }
+      .section-title {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: #64748b;
+        margin-bottom: 16px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        margin-bottom: 48px;
+      }
+      .card {
+        display: block;
+        background: #16213e;
+        border: 1px solid #2a2a4a;
+        border-radius: 12px;
+        padding: 24px;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 150ms ease, border-color 150ms ease;
+      }
+      .card:hover {
+        transform: translateY(-2px);
+        border-color: #3b82f6;
+      }
+      .card h3 {
+        color: #e0e0ff;
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+      }
+      .card p {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+      .card .tag {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .tag-lesson { background: #1e3a5f; color: #60a5fa; }
+      .tag-playground { background: #3b1f4e; color: #c084fc; }
+    </style>
   </head>
   <body>
-    <header id="header">
-      <span class="header-title">Activation Energy</span>
-      <a id="about-link" href="#">About</a>
+    <header>
+      <span class="header-title">Explorable Explanations</span>
     </header>
-    <div id="game"></div>
+    <main>
+      <h1>Explorable Explanations</h1>
+      <p class="subtitle">Interactive experiences about psychology, habits, and how the mind works.</p>
 
-    <div id="about-modal" class="modal-hidden">
-      <div class="modal-backdrop"></div>
-      <div class="modal-card">
-        <button id="modal-close">&times;</button>
-        <h2>Activation Energy: The Game</h2>
-        <p>An interactive explorable explanation about willpower, habits, and why you doom-scroll at 2am. Inspired by Nicky Case's explorable explanations.</p>
-        <p>Built with HTML/CSS/Canvas — all graphics are procedurally drawn, no sprites.</p>
-        <p><a href="https://github.com/idvorkin-ai-tools/activation-energy-game" target="_blank" rel="noopener">View on GitHub</a></p>
+      <p class="section-title">Lessons</p>
+      <div class="cards">
+        <a class="card" href="/lessons/energy/">
+          <h3>Activation Energy</h3>
+          <p>Why starting is harder than continuing. An interactive exploration of willpower, habits, and why you doom-scroll at 2am.</p>
+          <span class="tag tag-lesson">Lesson</span>
+        </a>
       </div>
-    </div>
 
-    <script type="module" src="/src/main.ts"></script>
+      <p class="section-title">Playgrounds</p>
+      <div class="cards">
+        <a class="card" href="/playground/raccoon-styles/">
+          <h3>Raccoon Character Styles</h3>
+          <p>Compare three procedural Canvas 2D raccoon character designs with all expressions and walk animations.</p>
+          <span class="tag tag-playground">Playground</span>
+        </a>
+      </div>
+    </main>
   </body>
 </html>

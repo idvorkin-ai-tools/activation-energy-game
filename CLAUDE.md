@@ -8,7 +8,17 @@ Production auto-deploys on push to main via GitHub Actions. PRs get preview depl
 
 ## What This Is
 
-An interactive narrative game (Nicky Case-style explorable explainer) about willpower, habits, and activation energy. Built with HTML/CSS/Canvas — all graphics are procedurally drawn (no image sprites). 8 sequential chapters, each with narrative text and an interactive component.
+A collection of interactive explorable explanations (Nicky Case-style). Built as a multi-page app (MPA) with HTML/CSS/Canvas — all graphics are procedurally drawn (no image sprites).
+
+### Site Structure (MPA)
+
+```
+/                              → Hub page (card grid linking to all content)
+/lessons/energy/               → Lesson 1: Activation Energy game (8 chapters)
+/playground/raccoon-styles/    → Playground: raccoon character style comparison
+```
+
+Each page is an independent HTML entry point. Vite multi-page build configured in `vite.config.ts`.
 
 ## Commands
 
@@ -27,8 +37,8 @@ No test suite exists. Playwright is installed but no tests are written yet.
 ### Layer Overview
 
 ```
-main.ts → Game → SceneManager → Chapter (extends Scene)
-                → WillpowerBar (persistent, always visible)
+src/lessons/energy/main.ts → Game → SceneManager → Chapter (extends Scene)
+                                   → WillpowerBar (persistent, always visible)
 ```
 
 - **Game** (`src/Game.ts`): Top-level orchestrator. Owns the SceneManager, WillpowerBar, and a `requestAnimationFrame` loop that drives tween updates (global + WillpowerBar groups).

@@ -1,5 +1,5 @@
-import { Game } from "./Game";
-import "./style.css";
+import { Game } from "../../Game";
+import "../../style.css";
 
 function init() {
   const gameEl = document.getElementById("game")!;
