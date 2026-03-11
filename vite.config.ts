@@ -15,6 +15,7 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         energy: resolve(__dirname, "lessons/energy/index.html"),
         glow: resolve(__dirname, "lessons/glow/index.html"),
+        freeEvening: resolve(__dirname, "lessons/free-evening/index.html"),
         raccoonStyles: resolve(
           __dirname,
           "playground/raccoon-styles/index.html",

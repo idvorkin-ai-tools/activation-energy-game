@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Free Evening</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      color: #d0d0e0;
+      font-family: Georgia, 'Times New Roman', serif;
+      line-height: 1.8;
+      overflow: hidden;
+    }
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      padding: 0 20px;
+      background: #16162a;
+      border-bottom: 1px solid #2a2a4a;
+      font-family: system-ui, sans-serif;
+    }
+    .header-title { color: #e0e0ff; font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+    .header-title a { color: inherit; text-decoration: none; }
+    .header-title a:hover { color: #aaaaee; }
+    #about-link { color: #8888cc; font-family: system-ui, sans-serif; font-size: 14px; text-decoration: none; cursor: pointer; }
+    #about-link:hover { color: #aaaaee; }
+    #about-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s ease; }
+    #about-modal.modal-hidden { opacity: 0; pointer-events: none; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+    .modal-card { position: relative; background: #1e1e3a; border: 1px solid #3a3a5c; border-radius: 12px; padding: 32px; max-width: 480px; width: 90%; color: #d0d0e8; font-family: system-ui, sans-serif; line-height: 1.6; }
+    .modal-card h2 { color: #e0e0ff; font-size: 20px; margin-bottom: 16px; }
+    .modal-card p { margin-bottom: 12px; font-size: 14px; }
+    .modal-card a { color: #7b7bdd; }
+    .modal-card a:hover { color: #9b9bff; }
+    #modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #8888aa; font-size: 24px; cursor: pointer; line-height: 1; }
+    #modal-close:hover { color: #ccccee; }
+
+    /* Game area */
+    #stage {
+      width: 100vw;
+      height: calc(100vh - 48px);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Text that fades in */
+    .block {
+      position: absolute;
+      max-width: 560px;
+      padding: 0 24px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+      text-align: center;
+    }
+    .block.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .block.entering-from-below {
+      transform: translateY(20px);
+    }
+    .block.entering-from-above {
+      transform: translateY(-20px);
+    }
+    .block.exiting-up {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    .block.exiting-down {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .block p {
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+    }
+    .block .big {
+      font-size: 1.6rem;
+      color: #e0e0ff;
+      font-weight: bold;
+      line-height: 1.5;
+      margin: 0 0 20px;
+    }
+    .dim { color: #64748b; }
+    .bright { color: #fbbf24; }
+    .soft-blue { color: #60a5fa; }
+    .soft-green { color: #4ade80; }
+    .soft-red { color: #f87171; }
+    .strike { text-decoration: line-through; color: #64748b; }
+    .highlight {
+      background: rgba(251, 191, 36, 0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fbbf24;
+    }
+
+    /* Energy meter visualization */
+    .meter {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 20px 0;
+      font-family: system-ui, sans-serif;
+      font-size: 0.85rem;
+    }
+    .meter-label { color: #94a3b8; min-width: 50px; text-align: right; }
+    .meter-bar {
+      height: 20px;
+      border-radius: 10px;
+      transition: width 0.6s ease;
+    }
+    .meter-bar-full { background: linear-gradient(90deg, #4ade80, #fbbf24); width: 260px; }
+    .meter-bar-low { background: linear-gradient(90deg, #f87171, #f87171 60%, transparent 60%); width: 260px; }
+    .meter-track {
+      width: 260px;
+      height: 20px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .meter-fill {
+      height: 100%;
+      border-radius: 10px;
+    }
+    .meter-fill-high { width: 85%; background: linear-gradient(90deg, #4ade80, #fbbf24); }
+    .meter-fill-low { width: 15%; background: #f87171; }
+
+    /* Side columns */
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 0 0 20px;
+      text-align: left;
+    }
+    .col {
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+    .col-time { background: rgba(96, 165, 250, 0.08); border: 1px solid rgba(96, 165, 250, 0.2); }
+    .col-energy { background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.2); }
+    .col h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+    .col-time h3 { color: #60a5fa; }
+    .col-energy h3 { color: #fbbf24; }
+    .col ul { list-style: none; }
+    .col li { margin-bottom: 4px; }
+
+    /* Stacked items */
+    .stack {
+      text-align: left;
+      margin: 0 auto 20px;
+      max-width: 380px;
+    }
+    .stack-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: system-ui, sans-serif;
+    }
+    .stack-cost {
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: monospace;
+      min-width: 44px;
+      text-align: center;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .stack-item-drain { background: rgba(248, 113, 113, 0.08); border: 1px solid rgba(248, 113, 113, 0.15); }
+    .stack-item-drain .stack-cost { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+    .stack-item-free { background: rgba(74, 222, 128, 0.08); border: 1px solid rgba(74, 222, 128, 0.15); }
+    .stack-item-free .stack-cost { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+    .stack-item-trap { background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.15); }
+    .stack-item-trap .stack-cost { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+
+    /* Continue prompt */
+    #continue-hint {
+      position: absolute;
+      bottom: 8%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #4a4a6a;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      letter-spacing: 1px;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    #continue-hint.visible { opacity: 1; }
+    #continue-hint:hover { color: #7a7aaa; }
+
+    /* Progress dots */
+    #progress {
+      position: absolute;
+      bottom: 3%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+    }
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2a2a4a;
+      transition: background 0.4s ease;
+    }
+    .dot.active { background: #fbbf24; }
+    .dot.done { background: #64748b; }
+  </style>
+</head>
+<body>
+  <header id="header">
+    <span class="header-title"><a href="/">Explorable Explanations</a> / The Free Evening</span>
+    <a id="about-link" href="#">About</a>
+  </header>
+
+  <div id="about-modal" class="modal-hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <button id="modal-close">&times;</button>
+      <h2>The Free Evening</h2>
+      <p>An explorable explanation about free evenings — why having time doesn't mean having energy, and what to do about it. Inspired by Nicky Case's explorable explanations.</p>
+      <p>Built with HTML/CSS/Canvas — all graphics are procedurally drawn, no sprites.</p>
+      <p><a href="https://github.com/idvorkin-ai-tools/activation-energy-game" target="_blank" rel="noopener">View on GitHub</a></p>
+    </div>
+  </div>
+
+  <div id="stage">
+    <div id="continue-hint">tap / arrow keys / swipe</div>
+    <div id="progress"></div>
+  </div>
+
+  <script>
+    // ── Blocks of content (one per "screen") ──
+    const BLOCKS = [
+      {
+        html: `<p class="big">The Free Evening</p>
+               <p><em style="color:#64748b">It's 6:30pm. Nothing on the calendar. The whole evening is yours.</em></p>`
+      },
+      {
+        html: `<p>You've been <em>waiting</em> for this.</p>
+               <p>No meetings. No errands. No obligations.</p>
+               <p>Four beautiful, empty hours.</p>`
+      },
+      {
+        html: `<p>You could read that book.<br>Start that side project.<br>Cook something real.<br>Call that friend.</p>
+               <p class="dim">You've been meaning to do all of these for weeks.</p>`
+      },
+      {
+        html: `<p>Instead, you open your phone.</p>
+               <p><em>"Just for a minute."</em></p>
+               <p class="dim">It's 10:45pm. You haven't moved.</p>`
+      },
+      {
+        html: `<p class="big">What happened?</p>
+               <p>You had the time. You had the <em>desire</em>.<br>So why didn't you do any of it?</p>`
+      },
+      {
+        html: `<p>Here's you at <span class="bright">8am</span>:</p>
+               <div class="meter">
+                 <span class="meter-label">Energy</span>
+                 <div class="meter-track"><div class="meter-fill meter-fill-high"></div></div>
+               </div>
+               <p>Full tank. Decisions are cheap. Starting things is easy.</p>`
+      },
+      {
+        html: `<p>Here's you at <span class="soft-red">6:30pm</span>:</p>
+               <div class="meter">
+                 <span class="meter-label">Energy</span>
+                 <div class="meter-track"><div class="meter-fill meter-fill-low"></div></div>
+               </div>
+               <p>You've made 200 decisions today.<br>Each one cost something. This is what's left.</p>`
+      },
+      {
+        html: `<p class="big">Time is what the clock says.<br>Energy is what your body says.</p>
+               <p>They are not the same thing.</p>`
+      },
+      {
+        html: `<p>Every evening activity has a <span class="highlight">starting cost</span>.</p>
+               <div class="stack">
+                 <div class="stack-item stack-item-free">
+                   <span class="stack-cost">-5</span>
+                   <span>Scroll your phone</span>
+                 </div>
+                 <div class="stack-item stack-item-free">
+                   <span class="stack-cost">-2</span>
+                   <span>Turn on the TV</span>
+                 </div>
+                 <div class="stack-item stack-item-drain">
+                   <span class="stack-cost">+15</span>
+                   <span>Open a book</span>
+                 </div>
+                 <div class="stack-item stack-item-drain">
+                   <span class="stack-cost">+25</span>
+                   <span>Cook a real meal</span>
+                 </div>
+                 <div class="stack-item stack-item-drain">
+                   <span class="stack-cost">+30</span>
+                   <span>Work on side project</span>
+                 </div>
+                 <div class="stack-item stack-item-drain">
+                   <span class="stack-cost">+35</span>
+                   <span>Call a friend</span>
+                 </div>
+               </div>
+               <p class="dim" style="font-size:0.9rem">Negative means it pulls you in. Positive means you have to push.</p>`
+      },
+      {
+        html: `<p>At 8am, you have 85 energy.</p>
+               <p>Calling a friend costs 35? <span class="soft-green">Easy.</span></p>
+               <p>At 6:30pm, you have 12 energy.</p>
+               <p>Calling a friend costs 35? <span class="soft-red">Impossible.</span></p>
+               <p>Not because you don't want to.<br>Because you literally <em>can't afford it</em>.</p>`
+      },
+      {
+        html: `<p>But scrolling? That costs <em>negative</em> five.</p>
+               <p>It doesn't just cost nothing — it <span class="highlight">pulls you in</span>.<br>You don't choose it. It's just the only door that's open.</p>`
+      },
+      {
+        html: `<p class="big">This is the trap of the free evening.</p>
+               <p>You see four empty hours and think: <span class="soft-blue">opportunity</span>.</p>
+               <p>Your body sees four empty hours and thinks: <span class="soft-red">survival mode</span>.</p>`
+      },
+      {
+        html: `<p>Here's the part nobody tells you:</p>
+               <p class="big">The things you want to do <em>give</em> energy.</p>
+               <p>Reading refills your creative tank.<br>Cooking grounds you in your body.<br>Calling a friend recharges your emotional fiber.</p>
+               <p>But you have to <em>start</em> them first.</p>`
+      },
+      {
+        html: `<p>And starting costs energy you don't have.</p>
+               <p class="big" style="line-height:1.8">High starting cost.<br>High reward.<br>Zero budget.</p>
+               <p class="dim">That's the deadlock.</p>`
+      },
+      {
+        html: `<p class="big">So what breaks the deadlock?</p>`
+      },
+      {
+        html: `<p><strong>1. Lower the starting cost.</strong></p>
+               <p>Don't "decide to read." Put the book on the couch before you leave for work.</p>
+               <p>Don't "plan to cook." Prep the ingredients at lunch.</p>
+               <p>Don't "think about calling." Set a recurring Tuesday 7pm reminder.</p>
+               <p>Every decision you remove <em>before</em> 6:30pm is energy saved <em>for</em> 6:30pm.</p>`
+      },
+      {
+        html: `<p><strong>2. Protect the tank.</strong></p>
+               <p>Your evening energy is set by noon.</p>
+               <p>Three back-to-back draining meetings? Your evening is gone — <em>at 2pm</em>.</p>
+               <p>A walk after lunch? A 10-minute break between calls?</p>
+               <p>Those aren't luxuries. They're <span class="highlight">evening insurance</span>.</p>`
+      },
+      {
+        html: `<p><strong>3. Start laughably small.</strong></p>
+               <p>Read one page. Chop one onion. Send one text.</p>
+               <p>The starting cost drops from 30 to 3.</p>
+               <p>And once you've started?<br>The energy flows <em>back</em>. The book pulls you in. The cooking becomes play. The call becomes joy.</p>`
+      },
+      {
+        html: `<div class="comparison">
+                 <div class="col col-time">
+                   <h3>Time thinking</h3>
+                   <ul>
+                     <li>"I have 4 free hours"</li>
+                     <li>"I should be productive"</li>
+                     <li>"Why can't I just start?"</li>
+                     <li>"I wasted my evening"</li>
+                   </ul>
+                 </div>
+                 <div class="col col-energy">
+                   <h3>Energy thinking</h3>
+                   <ul>
+                     <li>"I have 12 energy left"</li>
+                     <li>"What costs under 12?"</li>
+                     <li>"How can I lower the cost?"</li>
+                     <li>"One page is enough"</li>
+                   </ul>
+                 </div>
+               </div>
+               <p>Same evening. Same person. Completely different question.</p>`
+      },
+      {
+        html: `<p>Stop asking <span class="strike">Why don't I use my free time?</span></p>
+               <p>Start asking <span class="highlight">What can I afford right now?</span></p>`
+      },
+      {
+        html: `<p class="big" style="margin-bottom:0"><em>The evening was never free.<br>Your energy already paid for it.</em></p>`
+      },
+    ];
+
+    // ── State ──
+    const stage = document.getElementById('stage');
+    const hint = document.getElementById('continue-hint');
+    const progressEl = document.getElementById('progress');
+    let current = -1;
+    let transitioning = false;
+    let activeBlock = null;
+
+    // Build progress dots
+    for (let i = 0; i < BLOCKS.length; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      progressEl.appendChild(dot);
+    }
+    const dots = progressEl.querySelectorAll('.dot');
+
+    function showBlock(index) {
+      if (transitioning || index < 0 || index >= BLOCKS.length) return;
+      transitioning = true;
+      hint.classList.remove('visible');
+      const direction = index >= current ? 1 : -1;
+
+      // Exit current
+      if (activeBlock) {
+        activeBlock.classList.remove('visible');
+        activeBlock.classList.add(direction > 0 ? 'exiting-up' : 'exiting-down');
+        const old = activeBlock;
+        setTimeout(() => old.remove(), 600);
+      }
+
+      // Update dots
+      dots.forEach((d, i) => {
+        d.className = 'dot' + (i < index ? ' done' : i === index ? ' active' : '');
+      });
+
+      // Create new block
+      setTimeout(() => {
+        const block = document.createElement('div');
+        block.className = 'block' + (direction > 0 ? ' entering-from-below' : ' entering-from-above');
+        block.innerHTML = BLOCKS[index].html;
+        stage.appendChild(block);
+        activeBlock = block;
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            block.classList.add('visible');
+          });
+        });
+
+        setTimeout(() => {
+          transitioning = false;
+          if (index < BLOCKS.length - 1) {
+            hint.classList.add('visible');
+          }
+        }, 900);
+      }, 400);
+
+      current = index;
+    }
+
+    // Navigation: forward and back
+    function advance() {
+      if (transitioning) return;
+      showBlock(current + 1);
+    }
+    function goBack() {
+      if (transitioning || current <= 0) return;
+      showBlock(current - 1);
+    }
+
+    // Click/tap: left third goes back, rest goes forward
+    stage.addEventListener('click', (e) => {
+      const x = e.clientX / window.innerWidth;
+      if (x < 0.33 && current > 0) {
+        goBack();
+      } else {
+        advance();
+      }
+    });
+
+    // Keyboard: arrows, space, enter
+    document.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'Enter') {
+        e.preventDefault();
+        advance();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        goBack();
+      }
+    });
+
+    // Swipe: left swipe = forward, right swipe = back
+    let touchStartX = 0;
+    stage.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+    stage.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 40) {
+        if (dx < 0) advance();
+        else goBack();
+      } else {
+        // Tap: use left/right third
+        const x = e.changedTouches[0].clientX / window.innerWidth;
+        if (x < 0.33 && current > 0) goBack();
+        else advance();
+      }
+    });
+
+    // About modal
+    const modal = document.getElementById('about-modal');
+    document.getElementById('about-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      modal.classList.remove('modal-hidden');
+    });
+    document.getElementById('modal-close').addEventListener('click', () => {
+      modal.classList.add('modal-hidden');
+    });
+    modal.querySelector('.modal-backdrop').addEventListener('click', () => {
+      modal.classList.add('modal-hidden');
+    });
+
+    // Start
+    showBlock(0);
+  </script>
+</body>
+</html>
