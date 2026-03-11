@@ -4,3 +4,9 @@ dist
 .DS_Store
 tsconfig.tsbuildinfo
 .serena/
+
+# Gas Town (added by gt)
+.runtime/
+.claude/
+.logs/
+__pycache__/
