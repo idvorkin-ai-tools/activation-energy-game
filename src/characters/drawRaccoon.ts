@@ -267,29 +267,48 @@ export function drawRaccoon(
     }
   }
 
-  // Mouth
+  // Mouth — banana curves, wider and more dramatic
+  const MW = 7; // mouth half-width
   if (expression === "happy") {
-    // W-shaped mouth
+    // Big banana smile
     ctx.beginPath();
-    ctx.moveTo(-4, MOUTH_Y - 1);
-    ctx.quadraticCurveTo(-2, MOUTH_Y + 3, 0, MOUTH_Y);
-    ctx.quadraticCurveTo(2, MOUTH_Y + 3, 4, MOUTH_Y - 1);
+    ctx.moveTo(-MW, MOUTH_Y);
+    ctx.quadraticCurveTo(0, MOUTH_Y + 8, MW, MOUTH_Y);
     ctx.strokeStyle = PAL.nose;
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  } else if (expression === "energized") {
+    // Huge banana grin
+    ctx.beginPath();
+    ctx.moveTo(-MW - 2, MOUTH_Y);
+    ctx.quadraticCurveTo(0, MOUTH_Y + 10, MW + 2, MOUTH_Y);
+    ctx.strokeStyle = PAL.nose;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  } else if (expression === "tired") {
+    // Sad banana frown (inverted smile)
+    ctx.beginPath();
+    ctx.moveTo(-MW + 1, MOUTH_Y);
+    ctx.quadraticCurveTo(0, MOUTH_Y - 6, MW - 1, MOUTH_Y);
+    ctx.strokeStyle = PAL.nose;
+    ctx.lineWidth = 1.5;
     ctx.stroke();
   } else if (expression === "desperate") {
-    // Open O
+    // Wide open O mouth
     ctx.beginPath();
-    ctx.ellipse(0, MOUTH_Y, 3, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, MOUTH_Y + 1, 5, 6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#2C2420";
+    ctx.fill();
     ctx.strokeStyle = PAL.nose;
     ctx.lineWidth = 1.2;
     ctx.stroke();
   } else {
+    // Default curved mouth (neutral, stressed)
     ctx.beginPath();
-    ctx.moveTo(-4, MOUTH_Y);
-    ctx.quadraticCurveTo(0, MOUTH_Y + params.mouthCurve * -5, 4, MOUTH_Y);
+    ctx.moveTo(-MW, MOUTH_Y);
+    ctx.quadraticCurveTo(0, MOUTH_Y + params.mouthCurve * -8, MW, MOUTH_Y);
     ctx.strokeStyle = PAL.nose;
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.5;
     ctx.stroke();
   }
 
