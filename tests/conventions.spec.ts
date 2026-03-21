@@ -9,6 +9,7 @@ import { test, expect } from "@playwright/test";
 const PAGES = [
   { path: "/lessons/energy/", name: "Activation Energy", slideNav: false },
   { path: "/lessons/glow/", name: "Energy, Not Time", slideNav: true },
+  { path: "/lessons/free-evening/", name: "The Free Evening", slideNav: true },
   {
     path: "/playground/raccoon-styles/",
     name: "Raccoon Styles",
