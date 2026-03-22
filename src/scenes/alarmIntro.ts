@@ -1,31 +1,41 @@
 import { roundRect } from "./utils";
 
-/** Draw a dramatic alarm clock intro — big shaking clock centered on dark background */
+export type AlarmVariant = "overlay" | "dimmed" | "standalone";
+
+/** Draw a dramatic alarm clock intro */
 export function drawAlarmIntroScene(
   ctx: CanvasRenderingContext2D, w: number, h: number,
-  time: string, animTime: number
+  time: string, animTime: number,
+  variant: AlarmVariant = "standalone",
+  drawBedroomBg?: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
 ): void {
-  // Dark bedroom background
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-  bgGrad.addColorStop(0, "#0e0e1e");
-  bgGrad.addColorStop(1, "#1a1a2e");
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, w, h);
-
-  // Subtle stars in background
-  ctx.fillStyle = "rgba(255,255,255,0.15)";
-  const starPositions = [
-    [0.1, 0.1], [0.85, 0.15], [0.3, 0.08], [0.7, 0.25], [0.15, 0.3],
-    [0.9, 0.35], [0.5, 0.12], [0.65, 0.05], [0.2, 0.22], [0.8, 0.08],
-  ];
-  for (const [sx, sy] of starPositions) {
-    ctx.beginPath();
-    ctx.arc(w * sx, h * sy, 1, 0, Math.PI * 2);
-    ctx.fill();
+  if (variant === "overlay" && drawBedroomBg) {
+    // Option A: Full bedroom underneath, big clock floating on top
+    drawBedroomBg(ctx, w, h);
+    // Darken the bedroom slightly so clock pops
+    ctx.fillStyle = "rgba(0,0,10,0.35)";
+    ctx.fillRect(0, 0, w, h);
+  } else if (variant === "dimmed" && drawBedroomBg) {
+    // Option B: Dimmed bedroom, clock in upper area, raccoon visible
+    drawBedroomBg(ctx, w, h);
+    ctx.fillStyle = "rgba(0,0,10,0.5)";
+    ctx.fillRect(0, 0, w, h);
+  } else {
+    // Option C / standalone: Dark background with stars
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+    bgGrad.addColorStop(0, "#0e0e1e");
+    bgGrad.addColorStop(1, "#1a1a2e");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
+    for (const [sx, sy] of [[0.1,0.1],[0.85,0.15],[0.3,0.08],[0.7,0.25],[0.15,0.3],[0.9,0.35],[0.5,0.12],[0.65,0.05]]) {
+      ctx.beginPath(); ctx.arc(w * sx, h * sy, 1, 0, Math.PI * 2); ctx.fill();
+    }
   }
 
+  // Clock position — higher when bedroom is behind so raccoon is visible
   const cx = w / 2;
-  const cy = h * 0.45;
+  const cy = (variant === "overlay" || variant === "dimmed") ? h * 0.3 : h * 0.45;
 
   // Shake animation — oscillates with decreasing-then-increasing intensity
   const shakeFreq = 12;

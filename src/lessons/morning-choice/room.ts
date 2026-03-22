@@ -35,11 +35,19 @@ export function stopRoomAnimation(): void {
   }
 }
 
+/** Aspect ratio: taller on narrow screens so scenes aren't squished */
+function canvasAspect(width: number): number {
+  if (width <= 500) return 0.9;   // mobile — nearly square
+  if (width <= 700) return 0.75;  // tablet
+  return 0.6;                     // desktop
+}
+
 function setupCanvas(canvas: HTMLCanvasElement, dpr: number): void {
   const rect = canvas.getBoundingClientRect();
+  const aspect = canvasAspect(rect.width);
   canvas.width = rect.width * dpr;
-  canvas.height = rect.width * 0.6 * dpr;
-  canvas.style.height = `${rect.width * 0.6}px`;
+  canvas.height = rect.width * aspect * dpr;
+  canvas.style.height = `${rect.width * aspect}px`;
 }
 
 export function renderRoom(canvas: HTMLCanvasElement, state: RoomRenderState): void {
@@ -51,19 +59,27 @@ export function renderRoom(canvas: HTMLCanvasElement, state: RoomRenderState): v
   ctx.scale(dpr, dpr);
   const rect = canvas.getBoundingClientRect();
   const w = rect.width;
-  const h = rect.width * 0.6;
+  const h = rect.width * canvasAspect(rect.width);
 
   const sceneType = state.scene.sceneType ?? "bedroom";
 
   if (sceneType === "alarmIntro") {
-    // Animated alarm clock — runs its own RAF loop
+    // Animated alarm clock over bedroom — runs its own RAF loop
+    const bedroomBg = (bgCtx: CanvasRenderingContext2D, bw: number, bh: number) => {
+      drawBackground(bgCtx, bw, bh, state.scene.skyPhase);
+      drawWindow(bgCtx, bw, bh, state.scene.skyPhase);
+      drawBed(bgCtx, bw, bh);
+      drawNightstand(bgCtx, bw, bh, state.time, false);
+      drawDoor(bgCtx, bw, bh);
+      drawRaccoonInRoom(bgCtx, bw, bh, state.scene.raccoonPos, state.expression);
+    };
     const startTime = performance.now();
     const animate = () => {
       const elapsed = performance.now() - startTime;
       setupCanvas(canvas, dpr);
       const actx = canvas.getContext("2d")!;
       actx.scale(dpr, dpr);
-      drawAlarmIntroScene(actx, w, h, state.time, elapsed);
+      drawAlarmIntroScene(actx, w, h, state.time, elapsed, "overlay", bedroomBg);
       alarmAnimId = requestAnimationFrame(animate);
     };
     animate();
@@ -305,26 +321,67 @@ function drawRaccoonInRoom(
 
 function drawPhone(ctx: CanvasRenderingContext2D, w: number, h: number, raccoonPos: { x: number; y: number; rotation: number }): void {
   const isLying = raccoonPos.rotation > 45;
+  const rcx = w * raccoonPos.x;
+  const rcy = h * raccoonPos.y;
+
   let px: number, py: number, pw: number, ph: number;
+
   if (isLying) {
-    px = w * raccoonPos.x + w * 0.04; py = h * raccoonPos.y - h * 0.12; pw = w * 0.04; ph = h * 0.07;
+    // Phone held up in front of face while lying in bed
+    pw = w * 0.06;
+    ph = h * 0.1;
+    px = rcx + w * 0.08;
+    py = rcy - ph / 2 - h * 0.05;
   } else {
-    px = w * raccoonPos.x + w * 0.04; py = h * raccoonPos.y - h * 0.02; pw = w * 0.035; ph = h * 0.06;
+    // Sitting — phone in hand
+    pw = w * 0.05;
+    ph = h * 0.08;
+    px = rcx + w * 0.05;
+    py = rcy - h * 0.04;
   }
-  ctx.fillStyle = "#1a1a1a"; roundRect(ctx, px, py, pw, ph, 3); ctx.fill();
-  const screenPad = 2;
+
+  // Phone body
+  ctx.fillStyle = "#111";
+  roundRect(ctx, px, py, pw, ph, 4);
+  ctx.fill();
+  // Phone edge highlight
+  ctx.strokeStyle = "#333";
+  ctx.lineWidth = 1;
+  roundRect(ctx, px, py, pw, ph, 4);
+  ctx.stroke();
+
+  // Screen
+  const sp = 3;
   const screenGrad = ctx.createLinearGradient(px, py, px, py + ph);
-  screenGrad.addColorStop(0, "#3366cc"); screenGrad.addColorStop(0.3, "#4488ee"); screenGrad.addColorStop(1, "#2255aa");
-  ctx.fillStyle = screenGrad; roundRect(ctx, px + screenPad, py + screenPad, pw - screenPad * 2, ph - screenPad * 2, 2); ctx.fill();
-  ctx.save();
-  const glowGrad = ctx.createRadialGradient(px + pw / 2, py + ph / 2, 0, px + pw / 2, py + ph / 2, pw * 1.5);
-  glowGrad.addColorStop(0, "rgba(68,136,255,0.15)"); glowGrad.addColorStop(1, "rgba(68,136,255,0)");
-  ctx.fillStyle = glowGrad; ctx.fillRect(px - pw, py - ph, pw * 3, ph * 3);
-  ctx.restore();
-  ctx.fillStyle = "rgba(255,255,255,0.3)";
-  for (let i = 0; i < 3; i++) {
-    ctx.fillRect(px + screenPad + 2, py + screenPad + 3 + i * 4, pw * (0.4 + Math.random() * 0.3), 1.5);
+  screenGrad.addColorStop(0, "#3366cc");
+  screenGrad.addColorStop(0.3, "#4488ee");
+  screenGrad.addColorStop(0.7, "#3377dd");
+  screenGrad.addColorStop(1, "#2255aa");
+  ctx.fillStyle = screenGrad;
+  roundRect(ctx, px + sp, py + sp, pw - sp * 2, ph - sp * 2, 2);
+  ctx.fill();
+
+  // Fake content — social media feed lines
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  const contentTop = py + sp + 3;
+  const lineGap = Math.max(4, ph * 0.12);
+  for (let i = 0; i < 5; i++) {
+    const lineW = (pw - sp * 2) * (0.4 + (i * 17 % 7) / 10 * 0.4);
+    ctx.fillRect(px + sp + 2, contentTop + i * lineGap, lineW, 2);
   }
+
+  // Screen glow on raccoon's face — big soft blue light
+  ctx.save();
+  const glowCx = px + pw / 2;
+  const glowCy = py + ph / 2;
+  const glowR = Math.max(pw, ph) * 2.5;
+  const glowGrad = ctx.createRadialGradient(glowCx, glowCy, 0, glowCx, glowCy, glowR);
+  glowGrad.addColorStop(0, "rgba(68,136,255,0.25)");
+  glowGrad.addColorStop(0.4, "rgba(68,136,255,0.1)");
+  glowGrad.addColorStop(1, "rgba(68,136,255,0)");
+  ctx.fillStyle = glowGrad;
+  ctx.fillRect(glowCx - glowR, glowCy - glowR, glowR * 2, glowR * 2);
+  ctx.restore();
 }
 
 // --- Inertia Arrows ---
