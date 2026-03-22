@@ -5,6 +5,7 @@ import { roundRect, lerpColor } from "../../scenes/utils";
 import { drawGymScene } from "../../scenes/gym";
 import { drawCoffeeShopScene } from "../../scenes/coffeeShop";
 import { drawRaccoonComposite } from "../../scenes/raccoonComposite";
+import { drawAlarmIntroScene } from "../../scenes/alarmIntro";
 
 export interface RoomRenderState {
   scene: SceneUpdate;
@@ -13,6 +14,8 @@ export interface RoomRenderState {
   energy: number;
   inertia: number;
 }
+
+let alarmAnimId = 0;
 
 export function createRoomCanvas(container: HTMLElement): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
@@ -25,22 +28,47 @@ export function createRoomCanvas(container: HTMLElement): HTMLCanvasElement {
   return canvas;
 }
 
-export function renderRoom(canvas: HTMLCanvasElement, state: RoomRenderState): void {
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  const W = rect.width * dpr;
-  const H = rect.width * 0.6 * dpr;
+export function stopRoomAnimation(): void {
+  if (alarmAnimId) {
+    cancelAnimationFrame(alarmAnimId);
+    alarmAnimId = 0;
+  }
+}
 
-  canvas.width = W;
-  canvas.height = H;
+function setupCanvas(canvas: HTMLCanvasElement, dpr: number): void {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.width * 0.6 * dpr;
   canvas.style.height = `${rect.width * 0.6}px`;
+}
+
+export function renderRoom(canvas: HTMLCanvasElement, state: RoomRenderState): void {
+  stopRoomAnimation();
+  const dpr = window.devicePixelRatio || 1;
+  setupCanvas(canvas, dpr);
 
   const ctx = canvas.getContext("2d")!;
   ctx.scale(dpr, dpr);
+  const rect = canvas.getBoundingClientRect();
   const w = rect.width;
   const h = rect.width * 0.6;
 
   const sceneType = state.scene.sceneType ?? "bedroom";
+
+  if (sceneType === "alarmIntro") {
+    // Animated alarm clock — runs its own RAF loop
+    const startTime = performance.now();
+    const animate = () => {
+      const elapsed = performance.now() - startTime;
+      setupCanvas(canvas, dpr);
+      const actx = canvas.getContext("2d")!;
+      actx.scale(dpr, dpr);
+      drawAlarmIntroScene(actx, w, h, state.time, elapsed);
+      alarmAnimId = requestAnimationFrame(animate);
+    };
+    animate();
+    return;
+  }
 
   if (sceneType === "gym") {
     drawGymScene(ctx, w, h, state.scene.skyPhase);

@@ -1,6 +1,6 @@
 import type { ExpressionName } from "../../characters/expressions";
 
-export type SceneType = "bedroom" | "gym" | "coffeeShop";
+export type SceneType = "bedroom" | "alarmIntro" | "gym" | "coffeeShop";
 
 export interface SceneUpdate {
   raccoonPos: { x: number; y: number; rotation: number };

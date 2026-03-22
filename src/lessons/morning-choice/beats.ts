@@ -17,6 +17,7 @@ export const BEATS: Record<string, Beat> = {
       showEasyChair: false,
       showPhone: false,
       showAlarmRing: true,
+      sceneType: "alarmIntro",
     },
   },
   secondAlarm: {

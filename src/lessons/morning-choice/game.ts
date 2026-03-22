@@ -1,6 +1,6 @@
 import type { Beat, GameState, SceneUpdate } from "./types";
 import { BEATS, PRODUCTIVE_PATH_BEATS, PRODUCTIVE_PATH_ENERGY_GAINS, PRODUCTIVE_PATH_TIME_OFFSETS, STAY_BEAT_INERTIA } from "./beats";
-import { createRoomCanvas, renderRoom } from "./room";
+import { createRoomCanvas, renderRoom, stopRoomAnimation } from "./room";
 import { startDragInteraction } from "./drag";
 import { EnergyBar } from "./energy-bar";
 import { drawRaccoonComposite } from "../../scenes/raccoonComposite";
@@ -116,6 +116,7 @@ export class MorningChoiceGame {
   }
 
   private async transitionToBeat(beatId: string): Promise<void> {
+    stopRoomAnimation();
     this.narrativeEl.style.transition = "opacity 0.4s";
     this.choicesEl.style.transition = "opacity 0.4s";
     this.narrativeEl.style.opacity = "0";
@@ -418,8 +419,7 @@ export class MorningChoiceGame {
     this.reflectionEl?.remove();
 
     const isStayEnd = this.state.exitBeatId === null;
-    const goEnergy = isStayEnd ? null : this.state.energy;
-    const goTime = isStayEnd ? null : this.getEffectiveTime("coffeeShop");
+    const canvasSize = 200;
 
     const reflectionEl = document.createElement("div");
     this.reflectionEl = reflectionEl;
@@ -430,75 +430,103 @@ export class MorningChoiceGame {
       padding: 0 16px;
     `;
 
-    const goLabel = goEnergy != null
-      ? `Energy: ${goEnergy}<br>${goTime} — morning is yours`
-      : `What could have been?<br>Try the other path`;
-    const goLabelColor = goEnergy != null ? "#4a4" : "#888";
-    const canvasSize = 200;
-
-    reflectionEl.innerHTML = `
-      <div class="mc-reflect-compare">
-        <div class="mc-reflect-side">
-          <canvas id="reflect-stay" width="${canvasSize}" height="${canvasSize}" style="border-radius:12px;background:#1a1a2e;width:100%;max-width:${canvasSize}px"></canvas>
-          <p style="color:#c44;font-size:15px;margin-top:8px;line-height:1.4">Energy: 10<br>9:00 AM in the chair</p>
-        </div>
-        <div class="mc-reflect-vs">vs</div>
-        <div class="mc-reflect-side">
-          <canvas id="reflect-go" width="${canvasSize}" height="${canvasSize}" style="border-radius:12px;background:#1a1a2e;width:100%;max-width:${canvasSize}px"></canvas>
-          <p style="color:${goLabelColor};font-size:15px;margin-top:8px;line-height:1.4">${goLabel}</p>
-        </div>
-      </div>
-      <style>
-        .mc-reflect-compare {
-          display: flex;
-          gap: 20px;
-          justify-content: center;
-          align-items: flex-start;
-          margin-bottom: 16px;
-        }
-        .mc-reflect-side {
-          flex: 1;
-          text-align: center;
-          max-width: 220px;
-        }
-        .mc-reflect-vs {
-          display: flex;
-          align-items: center;
-          padding-top: 50px;
-          color: #555;
-          font-size: 24px;
-          font-weight: bold;
-        }
-        @media (max-width: 500px) {
-          .mc-reflect-compare {
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-          }
-          .mc-reflect-side {
-            max-width: 160px;
-          }
-          .mc-reflect-vs {
-            padding-top: 0;
-            font-size: 18px;
-          }
-        }
-      </style>
-    `;
-    this.container.insertBefore(reflectionEl, this.narrativeEl);
-
-    const stayCanvas = document.getElementById("reflect-stay") as HTMLCanvasElement;
-    drawRaccoonComposite(stayCanvas.getContext("2d")!, canvasSize / 2, canvasSize / 2, canvasSize * 0.8, "desperate");
-
-    const goCanvas = document.getElementById("reflect-go") as HTMLCanvasElement;
-    const goExpr = goEnergy != null
-      ? ((goEnergy >= 80) ? "energized" : "happy")
-      : "neutral";
-    drawRaccoonComposite(goCanvas.getContext("2d")!, canvasSize / 2, canvasSize / 2, canvasSize * 0.8, goExpr);
-
     const retryBtn = document.createElement("button");
     retryBtn.className = "mc-retry";
-    retryBtn.textContent = isStayEnd ? "Try getting up this time?" : "Try again?";
+
+    if (isStayEnd) {
+      // Stay path: show side-by-side comparison
+      reflectionEl.innerHTML = `
+        <div class="mc-reflect-compare">
+          <div class="mc-reflect-side">
+            <canvas id="reflect-stay" width="${canvasSize}" height="${canvasSize}" style="border-radius:12px;background:#1a1a2e;width:100%;max-width:${canvasSize}px"></canvas>
+            <p style="color:#c44;font-size:15px;margin-top:8px;line-height:1.4">Energy: 10<br>9:00 AM in the chair</p>
+          </div>
+          <div class="mc-reflect-vs">vs</div>
+          <div class="mc-reflect-side">
+            <canvas id="reflect-go" width="${canvasSize}" height="${canvasSize}" style="border-radius:12px;background:#1a1a2e;width:100%;max-width:${canvasSize}px"></canvas>
+            <p style="color:#888;font-size:15px;margin-top:8px;line-height:1.4">What could have been?<br>Try the other path</p>
+          </div>
+        </div>
+        <style>
+          .mc-reflect-compare {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+            margin-bottom: 16px;
+          }
+          .mc-reflect-side {
+            flex: 1;
+            text-align: center;
+            max-width: 220px;
+          }
+          .mc-reflect-vs {
+            display: flex;
+            align-items: center;
+            padding-top: 50px;
+            color: #555;
+            font-size: 24px;
+            font-weight: bold;
+          }
+          @media (max-width: 500px) {
+            .mc-reflect-compare {
+              flex-direction: column;
+              align-items: center;
+              gap: 8px;
+            }
+            .mc-reflect-side {
+              max-width: 160px;
+            }
+            .mc-reflect-vs {
+              padding-top: 0;
+              font-size: 18px;
+            }
+          }
+        </style>
+      `;
+      this.container.insertBefore(reflectionEl, this.narrativeEl);
+
+      const stayCanvas = document.getElementById("reflect-stay") as HTMLCanvasElement;
+      drawRaccoonComposite(stayCanvas.getContext("2d")!, canvasSize / 2, canvasSize / 2, canvasSize * 0.8, "desperate");
+
+      const goCanvas = document.getElementById("reflect-go") as HTMLCanvasElement;
+      drawRaccoonComposite(goCanvas.getContext("2d")!, canvasSize / 2, canvasSize / 2, canvasSize * 0.8, "neutral");
+
+      retryBtn.textContent = "Try getting up this time?";
+    } else {
+      // Productive path: single centered raccoon with congratulatory text
+      const goEnergy = this.state.energy;
+      const goTime = this.getEffectiveTime("coffeeShop");
+      const goExpr = goEnergy >= 80 ? "energized" : "happy";
+
+      reflectionEl.innerHTML = `
+        <div class="mc-reflect-win">
+          <canvas id="reflect-win" width="${canvasSize}" height="${canvasSize}" style="border-radius:12px;background:#1a1a2e;width:100%;max-width:${canvasSize}px"></canvas>
+          <p style="color:#e0e0ff;font-size:17px;margin-top:16px;line-height:1.6">
+            You did it! Same raccoon, same Saturday — but you chose to start.<br>
+            The hard part was the first 30 seconds.
+          </p>
+          <p style="color:#4a4;font-size:15px;margin-top:8px;line-height:1.4">Energy: ${goEnergy}<br>${goTime} — morning is yours</p>
+        </div>
+        <style>
+          .mc-reflect-win {
+            text-align: center;
+            margin-bottom: 16px;
+          }
+          .mc-reflect-win canvas {
+            display: block;
+            margin: 0 auto;
+          }
+        </style>
+      `;
+      this.container.insertBefore(reflectionEl, this.narrativeEl);
+
+      const winCanvas = document.getElementById("reflect-win") as HTMLCanvasElement;
+      drawRaccoonComposite(winCanvas.getContext("2d")!, canvasSize / 2, canvasSize / 2, canvasSize * 0.8, goExpr);
+
+      retryBtn.textContent = "Play again?";
+    }
+
     retryBtn.addEventListener("click", () => {
       reflectionEl.remove();
       this.reflectionEl = null;
