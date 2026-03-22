@@ -6,6 +6,16 @@ test.describe("Morning Choice lesson", () => {
     await page.waitForTimeout(1000);
   });
 
+  /** Wait for buttons to appear (narration must finish first) then click */
+  async function clickChoice(page: import("@playwright/test").Page, selector: string) {
+    // Click the narrative to skip typewriter, then wait for button visibility
+    await page.locator(".mc-narrative").click();
+    await page.waitForTimeout(200);
+    await page.click(selector, { timeout: 5000 });
+    // Wait for fade transition
+    await page.waitForTimeout(600);
+  }
+
   test("page loads with header and game", async ({ page }) => {
     await expect(page.locator("#header")).toBeVisible();
     await expect(page.locator("#room-canvas")).toBeVisible();
@@ -21,6 +31,9 @@ test.describe("Morning Choice lesson", () => {
 
   test("initial state shows alarm beat", async ({ page }) => {
     await expect(page.locator(".mc-narrative")).toContainText("alarm", { timeout: 5000 });
+    // Skip typewriter to reveal buttons
+    await page.locator(".mc-narrative").click();
+    await page.waitForTimeout(200);
     const buttons = page.locator(".mc-btn");
     await expect(buttons).toHaveCount(2);
     await expect(buttons.first()).toContainText("5 more minutes");
@@ -28,31 +41,29 @@ test.describe("Morning Choice lesson", () => {
   });
 
   test("stay path progresses through beats", async ({ page }) => {
-    await page.click(".mc-btn-stay");
-    await page.waitForTimeout(600);
+    await clickChoice(page, ".mc-btn-stay");
     await expect(page.locator(".mc-narrative")).toContainText("alarm again", { ignoreCase: true, timeout: 5000 });
 
-    await page.click(".mc-btn-stay");
-    await page.waitForTimeout(600);
+    await clickChoice(page, ".mc-btn-stay");
     await expect(page.locator(".mc-narrative")).toContainText("awake", { timeout: 5000 });
 
-    await page.click(".mc-btn-stay");
-    await page.waitForTimeout(600);
+    await clickChoice(page, ".mc-btn-stay");
     await expect(page.locator(".mc-narrative")).toContainText("phone", { timeout: 5000 });
 
-    await page.click(".mc-btn-stay");
-    await page.waitForTimeout(600);
+    await clickChoice(page, ".mc-btn-stay");
     await expect(page.locator(".mc-narrative")).toContainText("chair", { timeout: 5000 });
   });
 
   test("energy bar updates on stay path", async ({ page }) => {
     await expect(page.locator(".mc-energy-label")).toContainText("70");
-    await page.click(".mc-btn-stay");
-    await page.waitForTimeout(800);
+    await clickChoice(page, ".mc-btn-stay");
     await expect(page.locator(".mc-energy-label")).toContainText("55");
   });
 
   test("clicking get up shows drag hint", async ({ page }) => {
+    // Skip narration, then click get up
+    await page.locator(".mc-narrative").click();
+    await page.waitForTimeout(200);
     await page.click(".mc-btn-go");
     await page.waitForTimeout(500);
     await expect(page.locator(".mc-drag-hint")).toBeVisible();
@@ -61,12 +72,12 @@ test.describe("Morning Choice lesson", () => {
 
   test("retry button restarts the game", async ({ page }) => {
     for (let i = 0; i < 4; i++) {
-      await page.click(".mc-btn-stay");
-      await page.waitForTimeout(600);
+      await clickChoice(page, ".mc-btn-stay");
     }
+    // Wait for easy chair auto-advance to reflection
     await page.waitForTimeout(5000);
     await page.click(".mc-retry", { timeout: 10000 });
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1000);
     await expect(page.locator(".mc-narrative")).toContainText("alarm", { ignoreCase: true, timeout: 5000 });
   });
 
