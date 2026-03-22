@@ -1,5 +1,5 @@
 import type { Beat, GameState, SceneUpdate } from "./types";
-import { BEATS, GO_PATH_ORDER, GO_PATH_ENERGY_GAINS, GO_PATH_TIME_OFFSETS, STAY_BEAT_INERTIA } from "./beats";
+import { BEATS, GO_PATH_BEATS, GO_PATH_ENERGY_GAINS, GO_PATH_TIME_OFFSETS, STAY_BEAT_INERTIA } from "./beats";
 import { createRoomCanvas, renderRoom } from "./room";
 import { startDragInteraction } from "./drag";
 import { EnergyBar } from "./energy-bar";
@@ -112,7 +112,7 @@ export class MorningChoiceGame {
   }
 
   private isGoPathBeat(beatId: string): boolean {
-    return GO_PATH_ORDER.includes(beatId);
+    return GO_PATH_BEATS.has(beatId);
   }
 
   private async transitionToBeat(beatId: string): Promise<void> {
@@ -143,28 +143,40 @@ export class MorningChoiceGame {
     }
 
     this.energyBar.setValue(this.state.energy);
+    this.energyBar.setTime(this.getEffectiveTime(beatId));
     this.render();
-    this.showNarrative(beat);
 
     if (beatId === "reflection") {
+      this.showNarrative(beat);
       this.showReflection();
       return;
     }
 
-    this.showChoices(beat);
+    // Set up choices (hidden), then show narration which reveals them on complete
+    if (beat.goChoices) {
+      this.showGoChoices(beat);
+    } else {
+      this.showChoices(beat);
+    }
 
+    this.showNarrative(beat, () => this.revealChoices());
+
+    // Auto-advance
     if (beat.autoAdvanceMs) {
-      if (beatId === "easyChair") {
-        setTimeout(() => this.transitionToBeat("reflection"), beat.autoAdvanceMs);
-      } else {
-        const nextIdx = GO_PATH_ORDER.indexOf(beatId) + 1;
-        if (nextIdx > 0 && nextIdx < GO_PATH_ORDER.length) {
-          const nextId = GO_PATH_ORDER[nextIdx];
-          this.computeGoPathOverrides(nextId);
-          setTimeout(() => this.transitionToBeat(nextId), beat.autoAdvanceMs);
-        }
+      const autoTarget = this.getAutoAdvanceTarget(beatId);
+      if (autoTarget) {
+        this.computeGoPathOverrides(autoTarget);
+        setTimeout(() => this.transitionToBeat(autoTarget), beat.autoAdvanceMs);
       }
     }
+  }
+
+  private getAutoAdvanceTarget(beatId: string): string | null {
+    if (beatId === "easyChair") return "reflection";
+    if (beatId === "outOfBed") return "shoesOn";
+    if (beatId === "atGym") return "postGym";
+    if (beatId === "coffeeShop") return "reflection";
+    return null;
   }
 
   private computeGoPathOverrides(beatId: string): void {
@@ -208,7 +220,7 @@ export class MorningChoiceGame {
     });
   }
 
-  private showNarrative(beat: Beat): void {
+  private showNarrative(beat: Beat, onComplete?: () => void): void {
     if (this.typewriterInterval) {
       clearInterval(this.typewriterInterval);
       this.typewriterInterval = null;
@@ -217,21 +229,45 @@ export class MorningChoiceGame {
     this.narrativeEl.textContent = "";
     const text = beat.narration;
     let i = 0;
+    let finished = false;
+
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      if (this.typewriterInterval) {
+        clearInterval(this.typewriterInterval);
+        this.typewriterInterval = null;
+      }
+      this.narrativeEl.textContent = text;
+      onComplete?.();
+    };
+
+    // Click to skip typewriter
+    const skipHandler = () => {
+      finish();
+      this.narrativeEl.removeEventListener("click", skipHandler);
+    };
+    this.narrativeEl.addEventListener("click", skipHandler);
+    this.narrativeEl.style.cursor = "pointer";
+
     this.typewriterInterval = setInterval(() => {
       if (i < text.length) {
         this.narrativeEl.textContent += text[i];
         i++;
       } else {
-        clearInterval(this.typewriterInterval!);
-        this.typewriterInterval = null;
+        finish();
+        this.narrativeEl.removeEventListener("click", skipHandler);
+        this.narrativeEl.style.cursor = "";
       }
     }, 30);
   }
 
   private showChoices(beat: Beat): void {
     this.choicesEl.innerHTML = "";
-
     if (!beat.choices) return;
+
+    // Hide buttons initially, show after narration
+    this.choicesEl.style.visibility = "hidden";
 
     const stayBtn = document.createElement("button");
     stayBtn.className = "mc-btn mc-btn-stay";
@@ -252,8 +288,45 @@ export class MorningChoiceGame {
     this.choicesEl.appendChild(goBtn);
   }
 
+  private showGoChoices(beat: Beat): void {
+    this.choicesEl.innerHTML = "";
+    if (!beat.goChoices) return;
+
+    // Hide buttons initially, show after narration
+    this.choicesEl.style.visibility = "hidden";
+
+    for (const choice of beat.goChoices) {
+      const btn = document.createElement("button");
+      btn.className = "mc-btn";
+      if (choice.energyDelta && choice.energyDelta < 0) {
+        btn.classList.add("mc-btn-stay");
+      } else {
+        btn.classList.add("mc-btn-go");
+      }
+      btn.textContent = choice.label;
+      btn.addEventListener("click", () => {
+        if (choice.energyDelta) {
+          this.state.energy = Math.max(0, Math.min(100, this.state.energy + choice.energyDelta));
+          this.energyBar.setValue(this.state.energy);
+        }
+        this.computeGoPathOverrides(choice.next);
+        this.transitionToBeat(choice.next);
+      });
+      this.choicesEl.appendChild(btn);
+    }
+  }
+
+  private revealChoices(): void {
+    this.choicesEl.style.visibility = "visible";
+  }
+
   startDrag(): void {
     this.choicesEl.innerHTML = "";
+    // Clear any running typewriter before setting new text
+    if (this.typewriterInterval) {
+      clearInterval(this.typewriterInterval);
+      this.typewriterInterval = null;
+    }
     this.narrativeEl.textContent = "Drag yourself out of bed...";
 
     const beat = BEATS[this.state.currentBeatId];
@@ -300,9 +373,24 @@ export class MorningChoiceGame {
     });
   }
 
+  jumpToBeat(beatId: string): void {
+    // Clean up reflection if showing
+    this.reflectionEl?.remove();
+    this.reflectionEl = null;
+    this.canvas.style.display = "block";
+    this.goPathOverrides.clear();
+    // Set energy for go-path scenes
+    if (this.isGoPathBeat(beatId)) {
+      this.state.exitBeatId = "alarm";
+      this.computeGoPathOverrides(beatId);
+    }
+    this.enterBeat(beatId);
+  }
+
   private showReflection(): void {
     this.choicesEl.innerHTML = "";
     this.canvas.style.display = "none";
+    this.energyBar.el.style.display = "none";
 
     this.reflectionEl?.remove();
 
@@ -315,40 +403,48 @@ export class MorningChoiceGame {
     reflectionEl.className = "mc-reflection";
     reflectionEl.style.cssText = `
       max-width: 600px;
-      margin: 16px auto;
+      margin: 24px auto;
       padding: 0 16px;
     `;
 
+    const goLabel = goEnergy != null
+      ? `Energy: ${goEnergy}<br>${goTime} — morning is yours`
+      : `What could have been?<br>Try the other path`;
+    const goLabelColor = goEnergy != null ? "#4a4" : "#888";
+    const canvasSize = 200;
+
     reflectionEl.innerHTML = `
-      <div style="display:flex;gap:16px;justify-content:center;margin-bottom:24px">
-        <div style="flex:1;text-align:center">
-          <canvas id="reflect-stay" width="150" height="150" style="border-radius:8px;background:#1a1a2e"></canvas>
-          <p style="color:#c44;font-size:14px;margin-top:8px">Energy: 10<br>9:00 AM in the chair</p>
+      <div style="display:flex;gap:24px;justify-content:center;align-items:flex-start;margin-bottom:20px">
+        <div style="flex:1;text-align:center;max-width:220px">
+          <canvas id="reflect-stay" width="${canvasSize}" height="${canvasSize}" style="border-radius:12px;background:#1a1a2e;width:100%;max-width:${canvasSize}px"></canvas>
+          <p style="color:#c44;font-size:15px;margin-top:10px;line-height:1.4">Energy: 10<br>9:00 AM in the chair</p>
         </div>
-        <div style="flex:1;text-align:center">
-          <canvas id="reflect-go" width="150" height="150" style="border-radius:8px;background:#1a1a2e"></canvas>
-          <p style="color:#4a4;font-size:14px;margin-top:8px">Energy: ${goEnergy ?? 100}<br>${goTime ?? "7:30 AM"} — morning is yours</p>
+        <div style="display:flex;align-items:center;padding-top:60px;color:#555;font-size:24px;font-weight:bold">vs</div>
+        <div style="flex:1;text-align:center;max-width:220px">
+          <canvas id="reflect-go" width="${canvasSize}" height="${canvasSize}" style="border-radius:12px;background:#1a1a2e;width:100%;max-width:${canvasSize}px"></canvas>
+          <p style="color:${goLabelColor};font-size:15px;margin-top:10px;line-height:1.4">${goLabel}</p>
         </div>
       </div>
     `;
     this.container.insertBefore(reflectionEl, this.narrativeEl);
 
     const stayCanvas = document.getElementById("reflect-stay") as HTMLCanvasElement;
-    const stayCtx = stayCanvas.getContext("2d")!;
-    drawRaccoon(stayCtx, 150, 150, "desperate");
+    drawRaccoon(stayCanvas.getContext("2d")!, canvasSize, canvasSize, "desperate");
 
     const goCanvas = document.getElementById("reflect-go") as HTMLCanvasElement;
-    const goCtx = goCanvas.getContext("2d")!;
-    const goExpr = (goEnergy ?? 100) >= 80 ? "energized" : "happy";
-    drawRaccoon(goCtx, 150, 150, goExpr);
+    const goExpr = goEnergy != null
+      ? ((goEnergy >= 80) ? "energized" : "happy")
+      : "neutral";
+    drawRaccoon(goCanvas.getContext("2d")!, canvasSize, canvasSize, goExpr);
 
     const retryBtn = document.createElement("button");
     retryBtn.className = "mc-retry";
-    retryBtn.textContent = "Try again?";
+    retryBtn.textContent = isStayEnd ? "Try getting up this time?" : "Try again?";
     retryBtn.addEventListener("click", () => {
       reflectionEl.remove();
       this.reflectionEl = null;
       this.canvas.style.display = "block";
+      this.energyBar.el.style.display = "";
       this.goPathOverrides.clear();
       this.state = { currentBeatId: "alarm", energy: 70, exitBeatId: null };
       this.enterBeat("alarm");

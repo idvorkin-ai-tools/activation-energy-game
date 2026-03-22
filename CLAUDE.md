@@ -15,6 +15,9 @@ A collection of interactive explorable explanations (Nicky Case-style). Built as
 ```
 /                              → Hub page (card grid linking to all content)
 /lessons/energy/               → Lesson 1: Activation Energy game (8 chapters)
+/lessons/glow/                 → Lesson 2: Raccoon's Glow (wordless energy story)
+/lessons/morning-choice/       → Lesson 3: The Morning Choice (branching narrative)
+/lessons/free-evening/         → Free Evening (stubbed, not built yet)
 /playground/raccoon-styles/    → Playground: raccoon character style comparison
 ```
 
@@ -30,7 +33,7 @@ npm run preview   # Preview production build
 just ci           # npm ci + lint + build (CI pipeline)
 ```
 
-No test suite exists. Playwright is installed but no tests are written yet.
+Playwright E2E tests in `tests/`. Run with `npx playwright test`.
 
 ## Architecture
 
@@ -74,6 +77,8 @@ Each owns an `HTMLDivElement` (`.el` property) and uses HTML elements for UI wit
 
 Procedurally drawn pill-shaped character on a small `<canvas>` element with 6 expressions (happy, neutral, tired, stressed, desperate, energized). Key methods: `setExpression(name)`, `walkTo(x, y, duration)`. `Character.expressionForWillpower(percent)` maps willpower percentage to an expression.
 
+**Gotcha:** `drawRaccoon()` calls `clearRect(0, 0, w, h)` internally. When compositing the raccoon onto another canvas (e.g., the room scene), draw onto an offscreen canvas first, then `drawImage()` it — otherwise `clearRect` wipes the background.
+
 ### Animation Pattern
 
 Tween.js is used for animated values (willpower bar, card reveals, cost floats). The Game runs a `requestAnimationFrame` loop that updates:
@@ -81,6 +86,10 @@ Tween.js is used for animated values (willpower bar, card reveals, cost floats).
 2. WillpowerBar's tween group
 
 Scene transitions use CSS `opacity` with `transition` property. Each interaction component that uses tweens also runs its own `requestAnimationFrame` loop for its local tween group.
+
+### Self-Contained Lessons (Alternative Pattern)
+
+Lessons that need branching or non-linear flow (e.g., `/lessons/morning-choice/`) use a self-contained state machine instead of the Game/SceneManager framework. They import shared modules (`drawRaccoon`, expressions) but own their own flow, rendering, and UI. See `src/lessons/morning-choice/game.ts` for the pattern.
 
 ## Page Conventions (MUST follow for every new page)
 
@@ -106,7 +115,8 @@ Every lesson and playground page MUST have:
 
 - **TypeScript strict mode** with ES2020 target
 - **No sprites/textures** — all visuals drawn with HTML/CSS and Canvas 2D
+- **Visual verification** — whenever you draw a new scene or change a scene, you must screenshot and look at it with vision. When changing shared scene code in `src/scenes/`, re-screenshot ALL scenes that use it to check for regressions
 - **No heavy frameworks** — vanilla DOM manipulation, `<canvas>` for procedural drawing
 - **Sounds via Howler.js** — `src/assets/sounds.ts` is a stub ready for real audio files in `public/sounds/`
-- **Design docs** in `docs/plans/` — the script and implementation plan describe intended behavior for all chapters
+- **Design docs** in `docs/plans/` and `docs/superpowers/specs/` — specs and implementation plans describe intended behavior
 - **Deployed to Surge.sh** — staging at `activation-energy-game-stage.surge.sh`, production at `activation-energy-game.surge.sh`

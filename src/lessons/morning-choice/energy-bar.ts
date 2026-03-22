@@ -2,6 +2,7 @@ export class EnergyBar {
   readonly el: HTMLDivElement;
   private fill: HTMLDivElement;
   private label: HTMLSpanElement;
+  private timeLabel: HTMLSpanElement;
   private _value = 70;
   private _max = 100;
 
@@ -13,9 +14,11 @@ export class EnergyBar {
       <div class="mc-energy-track">
         <div class="mc-energy-fill" style="width:70%"></div>
       </div>
+      <span class="mc-time-label">6:00 AM</span>
     `;
     this.fill = this.el.querySelector(".mc-energy-fill")!;
     this.label = this.el.querySelector(".mc-energy-label")!;
+    this.timeLabel = this.el.querySelector(".mc-time-label")!;
 
     const style = document.createElement("style");
     style.textContent = `
@@ -32,6 +35,13 @@ export class EnergyBar {
         font-size: 14px;
         min-width: 80px;
         font-family: monospace;
+      }
+      .mc-time-label {
+        color: #e0e0ff;
+        font-size: 14px;
+        min-width: 70px;
+        font-family: monospace;
+        text-align: right;
       }
       .mc-energy-track {
         flex: 1;
@@ -51,6 +61,10 @@ export class EnergyBar {
   }
 
   get value(): number { return this._value; }
+
+  setTime(time: string): void {
+    this.timeLabel.textContent = time;
+  }
 
   setValue(v: number): void {
     this._value = Math.max(0, Math.min(this._max, v));

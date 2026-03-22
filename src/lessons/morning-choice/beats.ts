@@ -80,7 +80,7 @@ export const BEATS: Record<string, Beat> = {
     narration: "You drag yourself to the easy chair. Coffee in one hand, phone in the other. The morning is gone.",
     expression: "desperate",
     scene: {
-      raccoonPos: { x: 0.4, y: 0.6, rotation: 0 },
+      raccoonPos: { x: 0.58, y: 0.55, rotation: -15 },
       skyPhase: 0.8,
       showEasyChair: true,
       showPhone: true,
@@ -107,7 +107,7 @@ export const BEATS: Record<string, Beat> = {
     id: "shoesOn",
     time: "",
     energy: 0,
-    narration: "Shoes on. Door open. The cool air hits your face. You're moving.",
+    narration: "Shoes on. Door open. The cool air hits your face. Your phone buzzes in your pocket.",
     expression: "neutral",
     scene: {
       raccoonPos: { x: 0.65, y: 0.7, rotation: 0 },
@@ -116,7 +116,45 @@ export const BEATS: Record<string, Beat> = {
       showPhone: false,
       showAlarmRing: false,
     },
-    autoAdvanceMs: 2000,
+    goChoices: [
+      { label: "Head to the gym", next: "atGym", energyDelta: 10 },
+      { label: "Check phone real quick", next: "phoneTrap", energyDelta: -15 },
+    ],
+  },
+  phoneTrap: {
+    id: "phoneTrap",
+    time: "",
+    energy: 0,
+    narration: "You sit on the edge of the bed, scrolling. Again. The gym feels far away.",
+    expression: "stressed",
+    scene: {
+      raccoonPos: { x: 0.3, y: 0.65, rotation: 0 },
+      skyPhase: 0,
+      showEasyChair: false,
+      showPhone: true,
+      showAlarmRing: false,
+    },
+    goChoices: [
+      { label: "OK, gym now", next: "atGym", energyDelta: 5 },
+      { label: "Just a few more minutes", next: "deepScroll", energyDelta: -10 },
+    ],
+  },
+  deepScroll: {
+    id: "deepScroll",
+    time: "",
+    energy: 0,
+    narration: "Another 30 minutes gone. You didn't even enjoy it. But you're up. That counts for something.",
+    expression: "tired",
+    scene: {
+      raccoonPos: { x: 0.3, y: 0.65, rotation: 0 },
+      skyPhase: 0,
+      showEasyChair: false,
+      showPhone: true,
+      showAlarmRing: false,
+    },
+    goChoices: [
+      { label: "...fine, gym", next: "atGym", energyDelta: 5 },
+    ],
   },
   atGym: {
     id: "atGym",
@@ -125,26 +163,47 @@ export const BEATS: Record<string, Beat> = {
     narration: "At the gym. Your body wakes up. Energy you didn't know you had starts flowing.",
     expression: "energized",
     scene: {
-      raccoonPos: { x: 0.5, y: 0.7, rotation: 0 },
+      raccoonPos: { x: 0.5, y: 0.65, rotation: 0 },
       skyPhase: 0,
       showEasyChair: false,
       showPhone: false,
       showAlarmRing: false,
+      sceneType: "gym",
     },
-    autoAdvanceMs: 2000,
+    autoAdvanceMs: 2500,
+  },
+  postGym: {
+    id: "postGym",
+    time: "",
+    energy: 0,
+    narration: "Workout done. You feel alive. What now?",
+    expression: "energized",
+    scene: {
+      raccoonPos: { x: 0.5, y: 0.65, rotation: 0 },
+      skyPhase: 0,
+      showEasyChair: false,
+      showPhone: false,
+      showAlarmRing: false,
+      sceneType: "gym",
+    },
+    goChoices: [
+      { label: "Hit the coffee shop", next: "coffeeShop", energyDelta: 15 },
+      { label: "Get on with my day", next: "reflection", energyDelta: 5 },
+    ],
   },
   coffeeShop: {
     id: "coffeeShop",
     time: "",
     energy: 0,
     narration: "Coffee shop. Notebook open. The morning is yours. You earned this.",
-    expression: "happy",
+    expression: "energized",
     scene: {
-      raccoonPos: { x: 0.5, y: 0.7, rotation: 0 },
+      raccoonPos: { x: 0.35, y: 0.55, rotation: 0 },
       skyPhase: 1,
       showEasyChair: false,
       showPhone: false,
       showAlarmRing: false,
+      sceneType: "coffeeShop",
     },
     autoAdvanceMs: 2500,
   },
@@ -166,19 +225,23 @@ export const BEATS: Record<string, Beat> = {
 
 export const GO_PATH_ENERGY_GAINS: Record<string, number> = {
   outOfBed: 5,
-  shoesOn: 10,
   atGym: 20,
-  coffeeShop: 15,
 };
 
 export const GO_PATH_TIME_OFFSETS: Record<string, number> = {
   outOfBed: 0,
   shoesOn: 15,
-  atGym: 60,
-  coffeeShop: 90,
+  phoneTrap: 30,
+  deepScroll: 60,
+  atGym: 75,
+  postGym: 75,
+  coffeeShop: 105,
 };
 
-export const GO_PATH_ORDER = ["outOfBed", "shoesOn", "atGym", "coffeeShop", "reflection"];
+export const GO_PATH_BEATS = new Set([
+  "outOfBed", "shoesOn", "phoneTrap", "deepScroll",
+  "atGym", "postGym", "coffeeShop", "reflection",
+]);
 
 export const STAY_BEAT_INERTIA: Record<string, number> = {
   alarm: 1,
