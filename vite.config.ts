@@ -16,6 +16,7 @@ export default defineConfig({
         energy: resolve(__dirname, "lessons/energy/index.html"),
         glow: resolve(__dirname, "lessons/glow/index.html"),
         freeEvening: resolve(__dirname, "lessons/free-evening/index.html"),
+        morningChoice: resolve(__dirname, "lessons/morning-choice/index.html"),
         raccoonStyles: resolve(
           __dirname,
           "playground/raccoon-styles/index.html",

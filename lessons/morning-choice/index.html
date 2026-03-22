@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Morning Choice — Explorable Explanations</title>
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header id="header">
+    <span class="header-title">
+      <a href="/" style="color:inherit;text-decoration:none">Explorable Explanations</a> / The Morning Choice
+    </span>
+    <a id="about-link" href="#">About</a>
+  </header>
+
+  <div id="about-modal" class="modal-hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <button id="modal-close">&times;</button>
+      <h2>The Morning Choice</h2>
+      <p>An interactive exploration of inertia and momentum. The alarm goes off — do you get up or hit snooze? Watch two mornings diverge from the same starting point.</p>
+      <p class="tech-note">Built with HTML Canvas — all graphics are procedurally drawn, no sprites or images.</p>
+      <p><a href="https://github.com/idvorkin-ai-tools/activation-energy-game" target="_blank" rel="noopener">View source on GitHub</a></p>
+    </div>
+  </div>
+
+  <div id="game"></div>
+  <script type="module" src="/src/lessons/morning-choice/main.ts"></script>
+</body>
+</html>
