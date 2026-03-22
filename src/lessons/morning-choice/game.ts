@@ -1,5 +1,5 @@
 import type { Beat, GameState, SceneUpdate } from "./types";
-import { BEATS, GO_PATH_BEATS, GO_PATH_ENERGY_GAINS, GO_PATH_TIME_OFFSETS, STAY_BEAT_INERTIA } from "./beats";
+import { BEATS, PRODUCTIVE_PATH_BEATS, PRODUCTIVE_PATH_ENERGY_GAINS, PRODUCTIVE_PATH_TIME_OFFSETS, STAY_BEAT_INERTIA } from "./beats";
 import { createRoomCanvas, renderRoom } from "./room";
 import { startDragInteraction } from "./drag";
 import { EnergyBar } from "./energy-bar";
@@ -13,7 +13,7 @@ export class MorningChoiceGame {
   private choicesEl: HTMLDivElement;
   private state: GameState;
   private container: HTMLElement;
-  private goPathOverrides: Map<string, { time: string; skyPhase: number }> = new Map();
+  private productivePathOverrides: Map<string, { time: string; skyPhase: number }> = new Map();
   private typewriterInterval: ReturnType<typeof setInterval> | null = null;
   private reflectionEl: HTMLDivElement | null = null;
 
@@ -111,8 +111,8 @@ export class MorningChoiceGame {
     this.enterBeat("alarm");
   }
 
-  private isGoPathBeat(beatId: string): boolean {
-    return GO_PATH_BEATS.has(beatId);
+  private isProductivePathBeat(beatId: string): boolean {
+    return PRODUCTIVE_PATH_BEATS.has(beatId);
   }
 
   private async transitionToBeat(beatId: string): Promise<void> {
@@ -133,8 +133,8 @@ export class MorningChoiceGame {
 
     this.state.currentBeatId = beatId;
 
-    if (this.isGoPathBeat(beatId)) {
-      const gain = GO_PATH_ENERGY_GAINS[beatId];
+    if (this.isProductivePathBeat(beatId)) {
+      const gain = PRODUCTIVE_PATH_ENERGY_GAINS[beatId];
       if (gain) {
         this.state.energy = Math.min(100, this.state.energy + gain);
       }
@@ -152,26 +152,35 @@ export class MorningChoiceGame {
       return;
     }
 
+    const continueTarget = this.getContinueTarget(beatId);
+
+    // Beats with a continue target get a "Continue" button (except easyChair which auto-advances)
+    if (continueTarget && beatId === "easyChair") {
+      this.showNarrative(beat);
+      setTimeout(() => {
+        this.computeGoPathOverrides(continueTarget);
+        this.transitionToBeat(continueTarget);
+      }, beat.autoAdvanceMs ?? 3000);
+      return;
+    }
+
+    if (continueTarget) {
+      this.showContinueButton(continueTarget);
+      this.showNarrative(beat, () => this.revealChoices());
+      return;
+    }
+
     // Set up choices (hidden), then show narration which reveals them on complete
-    if (beat.goChoices) {
+    if (beat.productiveChoices) {
       this.showGoChoices(beat);
     } else {
       this.showChoices(beat);
     }
 
     this.showNarrative(beat, () => this.revealChoices());
-
-    // Auto-advance
-    if (beat.autoAdvanceMs) {
-      const autoTarget = this.getAutoAdvanceTarget(beatId);
-      if (autoTarget) {
-        this.computeGoPathOverrides(autoTarget);
-        setTimeout(() => this.transitionToBeat(autoTarget), beat.autoAdvanceMs);
-      }
-    }
   }
 
-  private getAutoAdvanceTarget(beatId: string): string | null {
+  private getContinueTarget(beatId: string): string | null {
     if (beatId === "easyChair") return "reflection";
     if (beatId === "outOfBed") return "shoesOn";
     if (beatId === "atGym") return "postGym";
@@ -182,23 +191,23 @@ export class MorningChoiceGame {
   private computeGoPathOverrides(beatId: string): void {
     if (!this.state.exitBeatId) return;
     const exitBeat = BEATS[this.state.exitBeatId];
-    const offset = GO_PATH_TIME_OFFSETS[beatId] ?? 0;
+    const offset = PRODUCTIVE_PATH_TIME_OFFSETS[beatId] ?? 0;
     const exitMinutes = parseTime(exitBeat.time);
     const totalMinutes = exitMinutes + offset;
-    this.goPathOverrides.set(beatId, {
+    this.productivePathOverrides.set(beatId, {
       time: formatTime(totalMinutes),
       skyPhase: skyPhaseForTime(totalMinutes),
     });
   }
 
   private getEffectiveTime(beatId: string): string {
-    return this.goPathOverrides.get(beatId)?.time ?? BEATS[beatId]?.time ?? "";
+    return this.productivePathOverrides.get(beatId)?.time ?? BEATS[beatId]?.time ?? "";
   }
 
   private getEffectiveScene(beatId: string): SceneUpdate {
     const beat = BEATS[beatId];
     if (!beat) return BEATS["alarm"].scene;
-    const override = this.goPathOverrides.get(beatId);
+    const override = this.productivePathOverrides.get(beatId);
     if (override) {
       return { ...beat.scene, skyPhase: override.skyPhase };
     }
@@ -290,12 +299,12 @@ export class MorningChoiceGame {
 
   private showGoChoices(beat: Beat): void {
     this.choicesEl.innerHTML = "";
-    if (!beat.goChoices) return;
+    if (!beat.productiveChoices) return;
 
     // Hide buttons initially, show after narration
     this.choicesEl.style.visibility = "hidden";
 
-    for (const choice of beat.goChoices) {
+    for (const choice of beat.productiveChoices) {
       const btn = document.createElement("button");
       btn.className = "mc-btn";
       if (choice.energyDelta && choice.energyDelta < 0) {
@@ -314,6 +323,20 @@ export class MorningChoiceGame {
       });
       this.choicesEl.appendChild(btn);
     }
+  }
+
+  private showContinueButton(nextBeatId: string): void {
+    this.choicesEl.innerHTML = "";
+    this.choicesEl.style.visibility = "hidden";
+
+    const btn = document.createElement("button");
+    btn.className = "mc-btn mc-btn-go";
+    btn.textContent = "Continue";
+    btn.addEventListener("click", () => {
+      this.computeGoPathOverrides(nextBeatId);
+      this.transitionToBeat(nextBeatId);
+    });
+    this.choicesEl.appendChild(btn);
   }
 
   private revealChoices(): void {
@@ -378,9 +401,9 @@ export class MorningChoiceGame {
     this.reflectionEl?.remove();
     this.reflectionEl = null;
     this.canvas.style.display = "block";
-    this.goPathOverrides.clear();
+    this.productivePathOverrides.clear();
     // Set energy for go-path scenes
-    if (this.isGoPathBeat(beatId)) {
+    if (this.isProductivePathBeat(beatId)) {
       this.state.exitBeatId = "alarm";
       this.computeGoPathOverrides(beatId);
     }
@@ -481,7 +504,7 @@ export class MorningChoiceGame {
       this.reflectionEl = null;
       this.canvas.style.display = "block";
       this.energyBar.el.style.display = "";
-      this.goPathOverrides.clear();
+      this.productivePathOverrides.clear();
       this.state = { currentBeatId: "alarm", energy: 70, exitBeatId: null };
       this.enterBeat("alarm");
     });

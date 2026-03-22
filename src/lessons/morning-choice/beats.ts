@@ -116,7 +116,7 @@ export const BEATS: Record<string, Beat> = {
       showPhone: false,
       showAlarmRing: false,
     },
-    goChoices: [
+    productiveChoices: [
       { label: "Head to the gym", next: "atGym", energyDelta: 10 },
       { label: "Check phone real quick", next: "phoneTrap", energyDelta: -15 },
     ],
@@ -134,7 +134,7 @@ export const BEATS: Record<string, Beat> = {
       showPhone: true,
       showAlarmRing: false,
     },
-    goChoices: [
+    productiveChoices: [
       { label: "OK, gym now", next: "atGym", energyDelta: 5 },
       { label: "Just a few more minutes", next: "deepScroll", energyDelta: -10 },
     ],
@@ -152,7 +152,7 @@ export const BEATS: Record<string, Beat> = {
       showPhone: true,
       showAlarmRing: false,
     },
-    goChoices: [
+    productiveChoices: [
       { label: "...fine, gym", next: "atGym", energyDelta: 5 },
     ],
   },
@@ -186,7 +186,7 @@ export const BEATS: Record<string, Beat> = {
       showAlarmRing: false,
       sceneType: "gym",
     },
-    goChoices: [
+    productiveChoices: [
       { label: "Hit the coffee shop", next: "coffeeShop", energyDelta: 15 },
       { label: "Get on with my day", next: "reflection", energyDelta: 5 },
     ],
@@ -223,12 +223,12 @@ export const BEATS: Record<string, Beat> = {
   },
 };
 
-export const GO_PATH_ENERGY_GAINS: Record<string, number> = {
+export const PRODUCTIVE_PATH_ENERGY_GAINS: Record<string, number> = {
   outOfBed: 5,
   atGym: 20,
 };
 
-export const GO_PATH_TIME_OFFSETS: Record<string, number> = {
+export const PRODUCTIVE_PATH_TIME_OFFSETS: Record<string, number> = {
   outOfBed: 0,
   shoesOn: 15,
   phoneTrap: 30,
@@ -238,7 +238,7 @@ export const GO_PATH_TIME_OFFSETS: Record<string, number> = {
   coffeeShop: 105,
 };
 
-export const GO_PATH_BEATS = new Set([
+export const PRODUCTIVE_PATH_BEATS = new Set([
   "outOfBed", "shoesOn", "phoneTrap", "deepScroll",
   "atGym", "postGym", "coffeeShop", "reflection",
 ]);

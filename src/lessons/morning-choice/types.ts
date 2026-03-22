@@ -11,7 +11,7 @@ export interface SceneUpdate {
   sceneType?: SceneType;
 }
 
-export interface GoPathChoice {
+export interface ProductivePathChoice {
   label: string;
   next: string;
   energyDelta?: number;
@@ -27,7 +27,7 @@ export interface Beat {
     stay: { label: string; next: string };
     go: { label: string };
   };
-  goChoices?: GoPathChoice[];
+  productiveChoices?: ProductivePathChoice[];
   scene: SceneUpdate;
   autoAdvanceMs?: number;
 }
