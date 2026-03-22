@@ -1,6 +1,7 @@
 import type { Beat, GameState, SceneUpdate } from "./types";
 import { BEATS, GO_PATH_ORDER, GO_PATH_ENERGY_GAINS, GO_PATH_TIME_OFFSETS, STAY_BEAT_INERTIA } from "./beats";
 import { createRoomCanvas, renderRoom } from "./room";
+import { startDragInteraction } from "./drag";
 import { EnergyBar } from "./energy-bar";
 import { drawRaccoon } from "../../characters/drawRaccoon";
 import { parseTime, formatTime, skyPhaseForTime } from "./time-utils";
@@ -240,10 +241,51 @@ export class MorningChoiceGame {
   }
 
   startDrag(): void {
-    // Placeholder: skip drag for now, go straight to go path
     this.choicesEl.innerHTML = "";
-    this.computeGoPathOverrides("outOfBed");
-    this.enterBeat("outOfBed");
+    this.narrativeEl.textContent = "Drag yourself out of bed...";
+
+    const beat = BEATS[this.state.currentBeatId];
+    const inertia = STAY_BEAT_INERTIA[this.state.currentBeatId] ?? 1;
+    const originalPos = { ...beat.scene.raccoonPos };
+
+    let cleanup: (() => void) | null = null;
+    let dragPos = { ...originalPos };
+
+    cleanup = startDragInteraction({
+      canvas: this.canvas,
+      startX: this.canvas.getBoundingClientRect().width * originalPos.x,
+      startY: this.canvas.getBoundingClientRect().width * 0.6 * originalPos.y,
+      thresholdX: this.canvas.getBoundingClientRect().width * 0.6,
+      springK: 0.02 + inertia * 0.015,
+      onProgress: (x, y) => {
+        const rect = this.canvas.getBoundingClientRect();
+        const w = rect.width;
+        const h = w * 0.6;
+        const nx = x / w;
+        const ny = y / h;
+        const startPx = w * originalPos.x;
+        const threshPx = w * 0.6;
+        const progress = Math.min(1, Math.max(0, (x - startPx) / (threshPx - startPx)));
+        const rotation = 90 * (1 - progress);
+        dragPos = { x: nx, y: ny, rotation };
+        renderRoom(this.canvas, {
+          scene: { ...beat.scene, raccoonPos: dragPos },
+          expression: beat.expression,
+          time: this.getEffectiveTime(this.state.currentBeatId),
+          energy: this.state.energy,
+          inertia,
+        });
+      },
+      onComplete: () => {
+        cleanup?.();
+        this.computeGoPathOverrides("outOfBed");
+        this.enterBeat("outOfBed");
+      },
+      onSnapBack: () => {
+        dragPos = { ...originalPos };
+        this.render();
+      },
+    });
   }
 
   private showReflection(): void {
