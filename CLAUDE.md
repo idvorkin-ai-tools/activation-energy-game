@@ -91,6 +91,13 @@ Scene transitions use CSS `opacity` with `transition` property. Each interaction
 
 Lessons that need branching or non-linear flow (e.g., `/lessons/morning-choice/`) use a self-contained state machine instead of the Game/SceneManager framework. They import shared modules (`drawRaccoon`, expressions) but own their own flow, rendering, and UI. See `src/lessons/morning-choice/game.ts` for the pattern.
 
+### Shared Scene Library (`src/scenes/`)
+
+Reusable Canvas 2D scene drawing functions. Each exports a `draw*Scene(ctx, w, h, skyPhase)` function:
+- `gym.ts` — gym with kettlebell rack, `kettlebell.ts` — `drawKettlebell()` with weight labels
+- `coffeeShop.ts` — cafe with table, coffee cup, notebook, window with trees
+- `utils.ts` — `roundRect()`, `lerpColor()` shared by all scene code
+
 ## Page Conventions (MUST follow for every new page)
 
 Every lesson and playground page MUST have:
@@ -119,4 +126,8 @@ Every lesson and playground page MUST have:
 - **No heavy frameworks** — vanilla DOM manipulation, `<canvas>` for procedural drawing
 - **Sounds via Howler.js** — `src/assets/sounds.ts` is a stub ready for real audio files in `public/sounds/`
 - **Design docs** in `docs/plans/` and `docs/superpowers/specs/` — specs and implementation plans describe intended behavior
+- **Mobile-first** — all lessons must work on iPhone 17 Pro (427x933 viewport, 3x DPR). Test with Playwright at `{width: 427, height: 933, deviceScaleFactor: 3}`. Canvas scenes must scale to viewport width. Touch interactions must work (touchstart/touchmove/touchend alongside mouse events). Font sizes must be readable at mobile widths.
+- **E2E test pattern** — buttons are hidden until narration finishes. In tests, click `.mc-narrative` to skip the typewriter before clicking choice buttons.
+- **Debug scene buttons** — add `?debug` to any lesson URL to show scene jump buttons (morning-choice only currently). Use for visual inspection during development.
+- **Playtest agent** — to get critical feedback on visuals and gameplay, dispatch a general-purpose subagent that uses Playwright to play through the game, screenshots every beat, views each with vision, and writes a structured critic report. See the playtest agent prompt used in this session for the template.
 - **Deployed to Surge.sh** — staging at `activation-energy-game-stage.surge.sh`, production at `activation-energy-game.surge.sh`

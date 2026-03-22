@@ -414,17 +414,53 @@ export class MorningChoiceGame {
     const canvasSize = 200;
 
     reflectionEl.innerHTML = `
-      <div style="display:flex;gap:24px;justify-content:center;align-items:flex-start;margin-bottom:20px">
-        <div style="flex:1;text-align:center;max-width:220px">
+      <div class="mc-reflect-compare">
+        <div class="mc-reflect-side">
           <canvas id="reflect-stay" width="${canvasSize}" height="${canvasSize}" style="border-radius:12px;background:#1a1a2e;width:100%;max-width:${canvasSize}px"></canvas>
-          <p style="color:#c44;font-size:15px;margin-top:10px;line-height:1.4">Energy: 10<br>9:00 AM in the chair</p>
+          <p style="color:#c44;font-size:15px;margin-top:8px;line-height:1.4">Energy: 10<br>9:00 AM in the chair</p>
         </div>
-        <div style="display:flex;align-items:center;padding-top:60px;color:#555;font-size:24px;font-weight:bold">vs</div>
-        <div style="flex:1;text-align:center;max-width:220px">
+        <div class="mc-reflect-vs">vs</div>
+        <div class="mc-reflect-side">
           <canvas id="reflect-go" width="${canvasSize}" height="${canvasSize}" style="border-radius:12px;background:#1a1a2e;width:100%;max-width:${canvasSize}px"></canvas>
-          <p style="color:${goLabelColor};font-size:15px;margin-top:10px;line-height:1.4">${goLabel}</p>
+          <p style="color:${goLabelColor};font-size:15px;margin-top:8px;line-height:1.4">${goLabel}</p>
         </div>
       </div>
+      <style>
+        .mc-reflect-compare {
+          display: flex;
+          gap: 20px;
+          justify-content: center;
+          align-items: flex-start;
+          margin-bottom: 16px;
+        }
+        .mc-reflect-side {
+          flex: 1;
+          text-align: center;
+          max-width: 220px;
+        }
+        .mc-reflect-vs {
+          display: flex;
+          align-items: center;
+          padding-top: 50px;
+          color: #555;
+          font-size: 24px;
+          font-weight: bold;
+        }
+        @media (max-width: 500px) {
+          .mc-reflect-compare {
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+          }
+          .mc-reflect-side {
+            max-width: 160px;
+          }
+          .mc-reflect-vs {
+            padding-top: 0;
+            font-size: 18px;
+          }
+        }
+      </style>
     `;
     this.container.insertBefore(reflectionEl, this.narrativeEl);
 
@@ -452,6 +488,7 @@ export class MorningChoiceGame {
 
     setTimeout(() => {
       this.choicesEl.appendChild(retryBtn);
+      retryBtn.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, 3000);
   }
 }

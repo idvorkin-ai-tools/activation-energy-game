@@ -6,11 +6,18 @@
   <title>The Morning Choice — Explorable Explanations</title>
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <link rel="stylesheet" href="/src/style.css" />
+  <style>
+    .header-short { display: none; }
+    @media (max-width: 500px) {
+      .header-full { display: none; }
+      .header-short { display: inline; }
+    }
+  </style>
 </head>
 <body>
   <header id="header">
     <span class="header-title">
-      <a href="/" style="color:inherit;text-decoration:none">Explorable Explanations</a> / The Morning Choice
+      <a href="/" style="color:inherit;text-decoration:none"><span class="header-full">Explorable Explanations</span><span class="header-short">EE</span></a> / The Morning Choice
     </span>
     <a id="about-link" href="#">About</a>
   </header>
