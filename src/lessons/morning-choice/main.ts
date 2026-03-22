@@ -1,5 +1,7 @@
 import "../../style.css";
+import { MorningChoiceGame } from "./game";
 
+// About modal
 const modal = document.getElementById("about-modal")!;
 document.getElementById("about-link")!.addEventListener("click", (e) => {
   e.preventDefault();
@@ -12,5 +14,6 @@ modal.querySelector(".modal-backdrop")!.addEventListener("click", () => {
   modal.classList.add("modal-hidden");
 });
 
+// Start game
 const gameEl = document.getElementById("game")!;
-gameEl.innerHTML = "<p style='color:#e0e0ff;text-align:center;margin-top:4rem'>Morning Choice — coming soon</p>";
+new MorningChoiceGame(gameEl);
