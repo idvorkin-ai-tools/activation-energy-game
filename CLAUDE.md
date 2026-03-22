@@ -96,6 +96,8 @@ Lessons that need branching or non-linear flow (e.g., `/lessons/morning-choice/`
 Reusable Canvas 2D scene drawing functions. Each exports a `draw*Scene(ctx, w, h, skyPhase)` function:
 - `gym.ts` — gym with kettlebell rack, `kettlebell.ts` — `drawKettlebell()` with weight labels
 - `coffeeShop.ts` — cafe with table, coffee cup, notebook, window with trees
+- `alarmIntro.ts` — animated shaking alarm clock with variants (overlay/dimmed/standalone)
+- `raccoonComposite.ts` — `drawRaccoonComposite()` handles offscreen rendering + ear padding. Use this instead of calling `drawRaccoon()` directly when compositing onto scene canvases.
 - `utils.ts` — `roundRect()`, `lerpColor()` shared by all scene code
 
 ## Page Conventions (MUST follow for every new page)
@@ -126,8 +128,10 @@ Every lesson and playground page MUST have:
 - **No heavy frameworks** — vanilla DOM manipulation, `<canvas>` for procedural drawing
 - **Sounds via Howler.js** — `src/assets/sounds.ts` is a stub ready for real audio files in `public/sounds/`
 - **Design docs** in `docs/plans/` and `docs/superpowers/specs/` — specs and implementation plans describe intended behavior
-- **Mobile-first** — all lessons must work on iPhone 17 Pro (427x933 viewport, 3x DPR). Test with Playwright at `{width: 427, height: 933, deviceScaleFactor: 3}`. Canvas scenes must scale to viewport width. Touch interactions must work (touchstart/touchmove/touchend alongside mouse events). Font sizes must be readable at mobile widths.
+- **Mobile-first** — all lessons must work on iPhone 17 Pro (427x933 viewport, 3x DPR). Test with Playwright at `{width: 427, height: 933, deviceScaleFactor: 3}`. Always screenshot at BOTH mobile and desktop when changing visuals. Header breadcrumbs should shorten on narrow screens (use `.header-full`/`.header-short` pattern). Use `drawRaccoonComposite()` not `drawRaccoon()` directly — raccoon ears clip at small canvas sizes without the padding.
+- **Responsive canvas aspect ratio** — scene canvases use `canvasAspect()` in `room.ts`: 0.9 on mobile (≤500px), 0.75 tablet, 0.6 desktop. Drawing functions receive `w` and `h` and must work at any aspect ratio — position elements relative to `w` and `h`, not hardcoded pixel values.
 - **E2E test pattern** — buttons are hidden until narration finishes. In tests, click `.mc-narrative` to skip the typewriter before clicking choice buttons.
 - **Debug scene buttons** — add `?debug` to any lesson URL to show scene jump buttons (morning-choice only currently). Use for visual inspection during development.
 - **Playtest agent** — to get critical feedback on visuals and gameplay, dispatch a general-purpose subagent that uses Playwright to play through the game, screenshots every beat, views each with vision, and writes a structured critic report. See the playtest agent prompt used in this session for the template.
+- **Game vocabulary** — **beats** are story moments, **stay path** is the inertia spiral, **productive path** is getting up and going. Beats have **choices** (stay/go buttons), **productiveChoices** (go-path decisions), **continue** buttons (player-paced advance), or **auto-advance** (only easyChair — loss of agency).
 - **Deployed to Surge.sh** — staging at `activation-energy-game-stage.surge.sh`, production at `activation-energy-game.surge.sh`
