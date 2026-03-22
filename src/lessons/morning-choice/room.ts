@@ -1,6 +1,7 @@
 import { drawRaccoon } from "../../characters/drawRaccoon";
 import type { ExpressionName } from "../../characters/expressions";
 import type { SceneUpdate } from "./types";
+import { parseTime } from "./time-utils";
 
 export interface RoomRenderState {
   scene: SceneUpdate;
@@ -140,7 +141,12 @@ function drawNightstand(
   ctx.fillStyle = "#1a2a1a";
   ctx.fillRect(cx, cy, cw, ch);
 
-  ctx.fillStyle = "#0f0";
+  // Time color: white (early) → yellow (8:00+) → red (9:00+)
+  const minutes = parseTime(time);
+  let timeColor = "#fff";
+  if (minutes >= 540) timeColor = "#f44";
+  else if (minutes >= 480) timeColor = "#ff0";
+  ctx.fillStyle = timeColor;
   ctx.font = `${Math.max(10, w * 0.02)}px monospace`;
   ctx.textAlign = "center";
   ctx.fillText(time, cx + cw / 2, cy + ch * 0.7);

@@ -115,6 +115,18 @@ export class MorningChoiceGame {
     return GO_PATH_ORDER.includes(beatId);
   }
 
+  private async transitionToBeat(beatId: string): Promise<void> {
+    this.narrativeEl.style.transition = "opacity 0.4s";
+    this.choicesEl.style.transition = "opacity 0.4s";
+    this.narrativeEl.style.opacity = "0";
+    this.choicesEl.style.opacity = "0";
+
+    await new Promise(r => setTimeout(r, 400));
+    this.enterBeat(beatId);
+    this.narrativeEl.style.opacity = "1";
+    this.choicesEl.style.opacity = "1";
+  }
+
   private enterBeat(beatId: string): void {
     const beat = BEATS[beatId];
     if (!beat) return;
@@ -143,13 +155,13 @@ export class MorningChoiceGame {
 
     if (beat.autoAdvanceMs) {
       if (beatId === "easyChair") {
-        setTimeout(() => this.enterBeat("reflection"), beat.autoAdvanceMs);
+        setTimeout(() => this.transitionToBeat("reflection"), beat.autoAdvanceMs);
       } else {
         const nextIdx = GO_PATH_ORDER.indexOf(beatId) + 1;
         if (nextIdx > 0 && nextIdx < GO_PATH_ORDER.length) {
           const nextId = GO_PATH_ORDER[nextIdx];
           this.computeGoPathOverrides(nextId);
-          setTimeout(() => this.enterBeat(nextId), beat.autoAdvanceMs);
+          setTimeout(() => this.transitionToBeat(nextId), beat.autoAdvanceMs);
         }
       }
     }
@@ -225,7 +237,7 @@ export class MorningChoiceGame {
     stayBtn.className = "mc-btn mc-btn-stay";
     stayBtn.textContent = beat.choices.stay.label;
     stayBtn.addEventListener("click", () => {
-      this.enterBeat(beat.choices!.stay.next);
+      this.transitionToBeat(beat.choices!.stay.next);
     });
 
     const goBtn = document.createElement("button");
@@ -279,7 +291,7 @@ export class MorningChoiceGame {
       onComplete: () => {
         cleanup?.();
         this.computeGoPathOverrides("outOfBed");
-        this.enterBeat("outOfBed");
+        this.transitionToBeat("outOfBed");
       },
       onSnapBack: () => {
         dragPos = { ...originalPos };
