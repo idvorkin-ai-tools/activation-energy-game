@@ -1,10 +1,10 @@
-import { drawRaccoon } from "../../characters/drawRaccoon";
 import type { ExpressionName } from "../../characters/expressions";
 import type { SceneUpdate } from "./types";
 import { parseTime } from "./time-utils";
 import { roundRect, lerpColor } from "../../scenes/utils";
 import { drawGymScene } from "../../scenes/gym";
 import { drawCoffeeShopScene } from "../../scenes/coffeeShop";
+import { drawRaccoonComposite } from "../../scenes/raccoonComposite";
 
 export interface RoomRenderState {
   scene: SceneUpdate;
@@ -269,17 +269,8 @@ function drawRaccoonInRoom(
   ctx: CanvasRenderingContext2D, w: number, h: number,
   pos: { x: number; y: number; rotation: number }, expression: ExpressionName
 ): void {
-  const px = w * pos.x, py = h * pos.y;
   const size = Math.min(w * 0.17, 100);
-  const offscreen = document.createElement("canvas");
-  offscreen.width = size;
-  offscreen.height = size;
-  drawRaccoon(offscreen.getContext("2d")!, size, size, expression);
-  ctx.save();
-  ctx.translate(px, py);
-  ctx.rotate((pos.rotation * Math.PI) / 180);
-  ctx.drawImage(offscreen, -size / 2, -size / 2);
-  ctx.restore();
+  drawRaccoonComposite(ctx, w * pos.x, h * pos.y, size, expression, pos.rotation);
 }
 
 // --- Phone ---

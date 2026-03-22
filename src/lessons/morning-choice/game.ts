@@ -3,7 +3,7 @@ import { BEATS, GO_PATH_BEATS, GO_PATH_ENERGY_GAINS, GO_PATH_TIME_OFFSETS, STAY_
 import { createRoomCanvas, renderRoom } from "./room";
 import { startDragInteraction } from "./drag";
 import { EnergyBar } from "./energy-bar";
-import { drawRaccoon } from "../../characters/drawRaccoon";
+import { drawRaccoonComposite } from "../../scenes/raccoonComposite";
 import { parseTime, formatTime, skyPhaseForTime } from "./time-utils";
 
 export class MorningChoiceGame {
@@ -465,13 +465,13 @@ export class MorningChoiceGame {
     this.container.insertBefore(reflectionEl, this.narrativeEl);
 
     const stayCanvas = document.getElementById("reflect-stay") as HTMLCanvasElement;
-    drawRaccoon(stayCanvas.getContext("2d")!, canvasSize, canvasSize, "desperate");
+    drawRaccoonComposite(stayCanvas.getContext("2d")!, canvasSize / 2, canvasSize / 2, canvasSize * 0.8, "desperate");
 
     const goCanvas = document.getElementById("reflect-go") as HTMLCanvasElement;
     const goExpr = goEnergy != null
       ? ((goEnergy >= 80) ? "energized" : "happy")
       : "neutral";
-    drawRaccoon(goCanvas.getContext("2d")!, canvasSize, canvasSize, goExpr);
+    drawRaccoonComposite(goCanvas.getContext("2d")!, canvasSize / 2, canvasSize / 2, canvasSize * 0.8, goExpr);
 
     const retryBtn = document.createElement("button");
     retryBtn.className = "mc-retry";
