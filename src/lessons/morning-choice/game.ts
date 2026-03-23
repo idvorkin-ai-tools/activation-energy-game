@@ -400,6 +400,17 @@ export class MorningChoiceGame {
     });
   }
 
+  restart(): void {
+    stopRoomAnimation();
+    this.reflectionEl?.remove();
+    this.reflectionEl = null;
+    this.canvas.style.display = "block";
+    this.energyBar.el.style.display = "";
+    this.productivePathOverrides.clear();
+    this.state = { currentBeatId: "alarm", energy: 70, exitBeatId: null };
+    this.enterBeat("alarm");
+  }
+
   jumpToBeat(beatId: string): void {
     // Clean up reflection if showing
     this.reflectionEl?.remove();

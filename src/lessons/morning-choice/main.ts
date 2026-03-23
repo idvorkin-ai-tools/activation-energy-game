@@ -18,6 +18,12 @@ modal.querySelector(".modal-backdrop")!.addEventListener("click", () => {
 const gameEl = document.getElementById("game")!;
 const game = new MorningChoiceGame(gameEl);
 
+// Restart on title tap
+document.getElementById("restart-link")!.addEventListener("click", (e) => {
+  e.preventDefault();
+  game.restart();
+});
+
 // Debug scene buttons
 if (window.location.search.includes("debug")) {
   const debugBar = document.createElement("div");

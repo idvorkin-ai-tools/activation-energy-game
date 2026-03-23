@@ -113,6 +113,7 @@ Every lesson and playground page MUST have:
    ```
 2. **About modal** — clicking About opens a modal with page description, tech note, and GitHub link. Uses the same modal HTML/CSS/JS pattern as `lessons/energy/index.html`.
 3. **Hub link** — the "Explorable Explanations" text in the header always links back to `/`.
+   - **Restart link** — the lesson/game title in the header must restart the game when tapped (use `id="restart-link"` and wire to `game.restart()`).
 4. **Hub card** — every new page gets a card added to the hub (`index.html`) in the appropriate section (Lessons or Playgrounds).
 5. **Vite entry** — every new HTML page gets added to `vite.config.ts` `build.rollupOptions.input`.
 6. **Navigation** — all slide/chapter-based lessons MUST support forward AND back:
