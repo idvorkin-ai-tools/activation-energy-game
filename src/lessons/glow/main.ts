@@ -1,10 +1,3 @@
-import { drawRaccoon } from "../../characters/drawRaccoon";
-import { ExpressionName } from "../../characters/expressions";
-
-// Establish imports for future raccoon integration
-void drawRaccoon;
-void (undefined as unknown as ExpressionName);
-
 interface Block {
   html: string;
 }
