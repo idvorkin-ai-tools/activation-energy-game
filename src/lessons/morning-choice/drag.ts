@@ -32,7 +32,8 @@ export function startDragInteraction(config: DragConfig): () => void {
 
   function onPointerDown(e: MouseEvent | TouchEvent) {
     const pos = getPos(e);
-    const raccoonSize = Math.min(canvas.getBoundingClientRect().width * 0.15, 100);
+    // Generous hit area — raccoon is drawn at 0.17 * width plus ear padding
+    const raccoonSize = Math.min(canvas.getBoundingClientRect().width * 0.2, 120);
     const dist = Math.hypot(pos.x - currentX, pos.y - currentY);
     if (dist > raccoonSize) return;
 

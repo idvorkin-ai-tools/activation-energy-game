@@ -1,6 +1,6 @@
 import type { Beat, GameState, SceneUpdate } from "./types";
 import { BEATS, PRODUCTIVE_PATH_BEATS, PRODUCTIVE_PATH_ENERGY_GAINS, PRODUCTIVE_PATH_TIME_OFFSETS, STAY_BEAT_INERTIA } from "./beats";
-import { createRoomCanvas, renderRoom, stopRoomAnimation } from "./room";
+import { createRoomCanvas, renderRoom, stopRoomAnimation, canvasAspect } from "./room";
 import { startDragInteraction } from "./drag";
 import { EnergyBar } from "./energy-bar";
 import { drawRaccoonComposite } from "../../scenes/raccoonComposite";
@@ -360,16 +360,19 @@ export class MorningChoiceGame {
     let cleanup: (() => void) | null = null;
     let dragPos = { ...originalPos };
 
+    const canvasW = this.canvas.getBoundingClientRect().width;
+    const canvasH = canvasW * canvasAspect(canvasW);
+
     cleanup = startDragInteraction({
       canvas: this.canvas,
-      startX: this.canvas.getBoundingClientRect().width * originalPos.x,
-      startY: this.canvas.getBoundingClientRect().width * 0.6 * originalPos.y,
-      thresholdX: this.canvas.getBoundingClientRect().width * 0.6,
+      startX: canvasW * originalPos.x,
+      startY: canvasH * originalPos.y,
+      thresholdX: canvasW * 0.6,
       springK: 0.02 + inertia * 0.015,
       onProgress: (x, y) => {
         const rect = this.canvas.getBoundingClientRect();
         const w = rect.width;
-        const h = w * 0.6;
+        const h = w * canvasAspect(w);
         const nx = x / w;
         const ny = y / h;
         const startPx = w * originalPos.x;

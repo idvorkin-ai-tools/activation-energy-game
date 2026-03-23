@@ -36,7 +36,7 @@ export function stopRoomAnimation(): void {
 }
 
 /** Aspect ratio: taller on narrow screens so scenes aren't squished */
-function canvasAspect(width: number): number {
+export function canvasAspect(width: number): number {
   if (width <= 500) return 0.9;   // mobile — nearly square
   if (width <= 700) return 0.75;  // tablet
   return 0.6;                     // desktop
