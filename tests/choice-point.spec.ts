@@ -23,4 +23,15 @@ test.describe("Choice Point lesson", () => {
     await expect(page.locator(".cp-begin-btn")).toBeVisible();
     await expect(page.locator(".cp-begin-btn")).toContainText(/tap to begin/i);
   });
+
+  test("arcade layout appears after tapping begin", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    await expect(page.locator(".cp-bin-away")).toBeVisible();
+    await expect(page.locator(".cp-bin-towards")).toBeVisible();
+    await expect(page.locator(".cp-bin-away")).toContainText("AWAY");
+    await expect(page.locator(".cp-bin-towards")).toContainText("TOWARDS");
+    await expect(page.locator(".cp-decision-line")).toBeVisible();
+    // Raccoon canvas (Character class appends a canvas)
+    await expect(page.locator(".cp-raccoon-layer canvas")).toBeVisible();
+  });
 });
