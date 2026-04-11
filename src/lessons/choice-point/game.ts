@@ -33,6 +33,8 @@ export class CatcherGame {
   private reflectionState: ReflectionState = newReflectionState();
   private energyBar!: EnergyBar;
 
+  private mode: "intro" | "explain" | "arcade" | "ending" = "intro";
+
   constructor(container: HTMLElement) {
     this.container = container;
     container.innerHTML = "";
@@ -43,6 +45,7 @@ export class CatcherGame {
 
   restart(): void {
     this.container.innerHTML = "";
+    this.mode = "intro";
     this.showIntro();
   }
 
@@ -145,11 +148,36 @@ export class CatcherGame {
         z-index: 6;
       }
       .cp-end-now:hover { opacity: 1; }
+      .cp-explain p { text-align: left; }
+      .cp-explain p:first-child { text-align: center; font-size: 22px; letter-spacing: 1px; margin-bottom: 28px; }
+      .cp-explain strong { color: ${ARCADE_PALETTE.accent}; letter-spacing: 1px; }
+      .cp-explain em { color: ${ARCADE_PALETTE.accent}; font-style: italic; }
+      .cp-explain-workability {
+        text-align: center !important;
+        font-style: italic;
+        font-size: 21px !important;
+        line-height: 1.5 !important;
+        padding: 18px 12px;
+        margin: 26px 0 !important;
+        border-top: 1px solid ${ARCADE_PALETTE.accent};
+        border-bottom: 1px solid ${ARCADE_PALETTE.accent};
+        color: ${ARCADE_PALETTE.accent};
+      }
+      .cp-explain-btn { display: block; margin-left: auto; margin-right: auto; }
+      .cp-explain-source {
+        margin-top: 28px;
+        font-size: 12px !important;
+        color: ${ARCADE_PALETTE.hudText};
+        opacity: 0.75;
+        text-align: center !important;
+      }
+      .cp-explain-source a { color: ${ARCADE_PALETTE.accent}; text-decoration: none; border-bottom: 1px dotted ${ARCADE_PALETTE.accent}; }
     `;
     document.head.appendChild(style);
   }
 
   private showIntro(): void {
+    this.mode = "intro";
     this.container.innerHTML = `
       <div class="cp-intro">
         <p>Harris — the ACT guy — draws a diagram in the first session with every client.</p>
@@ -159,6 +187,25 @@ export class CatcherGame {
       </div>
     `;
     const btn = this.container.querySelector<HTMLButtonElement>(".cp-begin-btn")!;
+    btn.addEventListener("click", () => this.showExplanation());
+  }
+
+  private showExplanation(): void {
+    this.mode = "explain";
+    this.container.innerHTML = `
+      <div class="cp-intro cp-explain">
+        <p>Two arrows.</p>
+        <p><strong>TOWARDS moves</strong> — things you do that take you toward the life you want to be living.</p>
+        <p><strong>AWAY moves</strong> — things you do when you're hooked by a hard feeling. Scrolling. Stalling. Numbing out.</p>
+        <p>The twist: Harris doesn't ask "is this good?" or "is this thought true?"</p>
+        <p class="cp-explain-workability">He asks: "Does this take me toward the life I want?"</p>
+        <p>It's never the form. Always the function. Going for a run can be towards (training) or away (anxiety-burn). Only you know.</p>
+        <p>One more thing: <em>YOU</em> define what's a towards move. This is your life.</p>
+        <button class="cp-begin-btn cp-explain-btn">Start catching &rarr;</button>
+        <p class="cp-explain-source">Based on Russ Harris's ACT. Notes at <a href="https://idvork.in/act" target="_blank" rel="noopener">idvork.in/act</a></p>
+      </div>
+    `;
+    const btn = this.container.querySelector<HTMLButtonElement>(".cp-explain-btn")!;
     btn.addEventListener("click", () => this.startArcade());
   }
 

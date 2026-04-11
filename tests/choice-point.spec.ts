@@ -1,4 +1,11 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
+
+async function tapToArcade(page: Page): Promise<void> {
+  // Intro → Explanation → Arcade
+  await page.click(".cp-begin-btn");
+  await expect(page.locator(".cp-explain")).toBeVisible();
+  await page.click(".cp-explain-btn");
+}
 
 test.describe("Choice Point lesson", () => {
   test.beforeEach(async ({ page }) => {
@@ -24,8 +31,31 @@ test.describe("Choice Point lesson", () => {
     await expect(page.locator(".cp-begin-btn")).toContainText(/tap to begin/i);
   });
 
-  test("arcade layout appears after tapping begin", async ({ page }) => {
+  test("explanation screen appears after tapping begin", async ({ page }) => {
     await page.click(".cp-begin-btn");
+    await expect(page.locator(".cp-explain")).toBeVisible();
+    // Workability framing is present
+    await expect(page.locator(".cp-explain")).toContainText("toward the life I want");
+    // Workability question gets visual prominence
+    await expect(page.locator(".cp-explain-workability")).toBeVisible();
+    // Source attribution link to idvork.in/act
+    await expect(page.locator(".cp-explain-source a")).toHaveAttribute("href", "https://idvork.in/act");
+    // Start catching button is present
+    await expect(page.locator(".cp-explain-btn")).toBeVisible();
+    await expect(page.locator(".cp-explain-btn")).toContainText(/start catching/i);
+  });
+
+  test("start catching on explanation screen triggers the arcade", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    await expect(page.locator(".cp-explain")).toBeVisible();
+    await page.click(".cp-explain-btn");
+    await expect(page.locator(".cp-stage")).toBeVisible();
+    await expect(page.locator(".cp-bin-away")).toBeVisible();
+    await expect(page.locator(".cp-bin-towards")).toBeVisible();
+  });
+
+  test("arcade layout appears after tapping begin", async ({ page }) => {
+    await tapToArcade(page);
     await expect(page.locator(".cp-bin-away")).toBeVisible();
     await expect(page.locator(".cp-bin-towards")).toBeVisible();
     await expect(page.locator(".cp-bin-away")).toContainText("AWAY");
@@ -36,7 +66,7 @@ test.describe("Choice Point lesson", () => {
   });
 
   test("energy bar appears after tapping begin", async ({ page }) => {
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     await expect(page.locator(".cp-energy-bar")).toBeVisible();
     await expect(page.locator(".cp-energy-fill")).toBeVisible();
     const initialWidth = await page
@@ -46,7 +76,7 @@ test.describe("Choice Point lesson", () => {
   });
 
   test("energy bar fill shrinks after routing a tile", async ({ page }) => {
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     await expect(page.locator(".cp-tile")).toBeVisible();
     const initialWidth = await page
       .locator(".cp-energy-fill")
@@ -64,14 +94,14 @@ test.describe("Choice Point lesson", () => {
   });
 
   test("first tile appears after begin and shows scenario text", async ({ page }) => {
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     await expect(page.locator(".cp-tile")).toBeVisible({ timeout: 2000 });
     const tileText = await page.locator(".cp-tile-text").textContent();
     expect(tileText?.length ?? 0).toBeGreaterThan(5);
   });
 
   test("tapping right routes tile to towards bin and drops next", async ({ page }) => {
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     await expect(page.locator(".cp-tile")).toBeVisible();
     const firstText = await page.locator(".cp-tile-text").textContent();
 
@@ -88,7 +118,7 @@ test.describe("Choice Point lesson", () => {
   });
 
   test("reflection beat appears after routing ambiguous tile", async ({ page }) => {
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     const stage = page.locator(".cp-stage");
     const box = (await stage.boundingBox())!;
 
@@ -112,7 +142,7 @@ test.describe("Choice Point lesson", () => {
   });
 
   test("raccoon remains visible during reflection beat", async ({ page }) => {
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     const stage = page.locator(".cp-stage");
     const box = (await stage.boundingBox())!;
     const clickX = box.x + box.width * 0.75;
@@ -139,7 +169,7 @@ test.describe("Choice Point lesson", () => {
   });
 
   test("reflection overlay has opacity transition style", async ({ page }) => {
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     // Structural test — verify the stylesheet has the transition rule
     const hasTransition = await page.evaluate(() => {
       const style = document.getElementById("cp-reflection-styles");
@@ -149,7 +179,7 @@ test.describe("Choice Point lesson", () => {
   });
 
   test("HUD updates to wave 2 after 6 tiles routed", async ({ page }) => {
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     const stage = page.locator(".cp-stage");
     const box = (await stage.boundingBox())!;
     const clickX = box.x + box.width * 0.75;
@@ -177,7 +207,7 @@ test.describe("Choice Point lesson", () => {
   });
 
   test("ending list appears after all tiles routed", async ({ page }) => {
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     const stage = page.locator(".cp-stage");
     const box = (await stage.boundingBox())!;
     // Route 22 tiles by repeatedly clicking right; tap the reflection button if it appears
@@ -202,7 +232,7 @@ test.describe("Choice Point lesson", () => {
   });
 
   test("end-now button jumps straight to the ending", async ({ page }) => {
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     await expect(page.locator(".cp-end-now")).toBeVisible();
     await expect(page.locator(".cp-tile")).toBeVisible();
     await page.click(".cp-end-now");
@@ -210,7 +240,7 @@ test.describe("Choice Point lesson", () => {
   });
 
   test("missed tile is recorded and next tile drops", async ({ page }) => {
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     await expect(page.locator(".cp-tile")).toBeVisible();
     const firstText = await page.locator(".cp-tile-text").textContent();
     // Wait longer than secondsPerTile (wave 1 = 4s)
@@ -222,7 +252,7 @@ test.describe("Choice Point lesson", () => {
 
   test("full playthrough reaches takeaway textarea", async ({ page }) => {
     await page.goto("/lessons/choice-point/");
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     const stage = page.locator(".cp-stage");
     const box = (await stage.boundingBox())!;
 
@@ -269,7 +299,7 @@ test.describe("Choice Point — mobile viewport", () => {
   test("layout fits on mobile", async ({ page }) => {
     await page.goto("/lessons/choice-point/");
     await expect(page.locator(".cp-intro")).toBeVisible();
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     await expect(page.locator(".cp-tile")).toBeVisible();
     await expect(page.locator(".cp-bin-away")).toBeVisible();
     await expect(page.locator(".cp-bin-towards")).toBeVisible();
@@ -281,7 +311,7 @@ test.describe("Choice Point — mobile viewport", () => {
 
   test("no horizontal overflow", async ({ page }) => {
     await page.goto("/lessons/choice-point/");
-    await page.click(".cp-begin-btn");
+    await tapToArcade(page);
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(scrollWidth).toBeLessThanOrEqual(427);
   });
