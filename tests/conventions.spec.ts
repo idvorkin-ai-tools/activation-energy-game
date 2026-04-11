@@ -10,6 +10,7 @@ const PAGES = [
   { path: "/lessons/energy/", name: "Activation Energy", slideNav: false },
   { path: "/lessons/glow/", name: "Energy, Not Time", slideNav: true },
   { path: "/lessons/free-evening/", name: "The Free Evening", slideNav: true },
+  { path: "/lessons/choice-point/", name: "The Choice Point", slideNav: false },
   {
     path: "/playground/raccoon-styles/",
     name: "Raccoon Styles",
