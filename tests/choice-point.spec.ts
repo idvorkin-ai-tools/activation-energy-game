@@ -201,6 +201,14 @@ test.describe("Choice Point lesson", () => {
     await expect(page.locator(".cp-ending-list")).toBeVisible({ timeout: 3000 });
   });
 
+  test("end-now button jumps straight to the ending", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    await expect(page.locator(".cp-end-now")).toBeVisible();
+    await expect(page.locator(".cp-tile")).toBeVisible();
+    await page.click(".cp-end-now");
+    await expect(page.locator(".cp-ending")).toBeVisible({ timeout: 3000 });
+  });
+
   test("missed tile is recorded and next tile drops", async ({ page }) => {
     await page.click(".cp-begin-btn");
     await expect(page.locator(".cp-tile")).toBeVisible();

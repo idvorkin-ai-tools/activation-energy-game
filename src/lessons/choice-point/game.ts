@@ -129,6 +129,22 @@ export class CatcherGame {
         color: ${ARCADE_PALETTE.hudText};
         letter-spacing: 1px;
       }
+      .cp-end-now {
+        position: absolute;
+        bottom: 18px;
+        right: 20px;
+        background: transparent;
+        border: none;
+        color: ${ARCADE_PALETTE.hudText};
+        font-size: 11px;
+        letter-spacing: 1px;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        cursor: pointer;
+        padding: 4px 8px;
+        opacity: 0.55;
+        z-index: 6;
+      }
+      .cp-end-now:hover { opacity: 1; }
     `;
     document.head.appendChild(style);
   }
@@ -162,6 +178,7 @@ export class CatcherGame {
           </div>
         </div>
         <div class="cp-hud"><span class="cp-hud-wave">WAVE 1</span></div>
+        <button class="cp-end-now" type="button">end now</button>
       </div>
     `;
     injectTileStyles();
@@ -187,7 +204,28 @@ export class CatcherGame {
     this.reflectionState = newReflectionState();
     injectReflectionStyles();
     this.attachTapHandlers();
+
+    const endNowBtn = this.container.querySelector<HTMLButtonElement>(".cp-end-now");
+    endNowBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.endNow();
+    });
+
     this.dropNextTile();
+  }
+
+  private endNow(): void {
+    if (this.cancelFall) {
+      this.cancelFall();
+      this.cancelFall = null;
+    }
+    if (this.currentTile) {
+      this.currentTile.remove();
+      this.currentTile = null;
+    }
+    // Force dropNextTile to bail if it ever gets called after this point
+    this.scenarioIndex = this.scenarios.length;
+    void this.runEnding();
   }
 
   private dropNextTile(): void {
