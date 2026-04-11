@@ -720,3 +720,202 @@ export function drawValuedWriting(ctx: ValuedSceneContext): void {
 
 /** Scene 5: Warm living room with painted cartoon dog (not silhouette). */
 
+export function drawValuedDog(ctx: ValuedSceneContext): void {
+  const { ctx: c, w, h, t } = ctx;
+
+  // Warm salmon/terracotta interior wall
+  const wallGrad = c.createLinearGradient(0, 0, 0, h * 0.72);
+  wallGrad.addColorStop(0, "#8a4a3a");
+  wallGrad.addColorStop(1, "#9a5040");
+  c.fillStyle = wallGrad;
+  c.fillRect(0, 0, w, h * 0.72);
+
+  // Warm wooden floor
+  const floorGrad = c.createLinearGradient(0, h * 0.72, 0, h);
+  floorGrad.addColorStop(0, "#8a5020");
+  floorGrad.addColorStop(1, "#5a3010");
+  c.fillStyle = floorGrad;
+  c.fillRect(0, h * 0.72, w, h * 0.28);
+  // Plank lines
+  c.strokeStyle = "#4a2a0a";
+  c.lineWidth = 1;
+  for (let px = 0; px < w; px += 30) {
+    c.beginPath();
+    c.moveTo(px, h * 0.72);
+    c.lineTo(px, h);
+    c.stroke();
+  }
+
+  // Baseboard
+  c.fillStyle = "#d8c8b8";
+  c.fillRect(0, h * 0.7, w, 8);
+
+  // Orange couch on the left — prominent warm piece
+  const couchX = 0;
+  const couchY = h * 0.5;
+  const couchW = w * 0.3;
+  const couchBodyH = h * 0.22;
+
+  // Couch body/frame
+  c.fillStyle = "#b87020";
+  c.fillRect(couchX, couchY, couchW, couchBodyH);
+
+  // Couch seat cushions
+  c.fillStyle = "#d88828";
+  c.beginPath();
+  c.roundRect(couchX + 2, couchY + 8, couchW / 2 - 4, couchBodyH * 0.55, [0, 0, 4, 4]);
+  c.fill();
+  c.beginPath();
+  c.roundRect(couchX + couchW / 2 + 2, couchY + 8, couchW / 2 - 4, couchBodyH * 0.55, [0, 0, 4, 4]);
+  c.fill();
+
+  // Couch back (darker)
+  c.fillStyle = "#a86010";
+  c.fillRect(couchX, couchY, couchW, 14);
+  // Back cushion highlight
+  c.fillStyle = "#c87820";
+  c.fillRect(couchX + 3, couchY + 2, couchW - 6, 6);
+
+  // Couch left armrest (at canvas edge)
+  c.fillStyle = "#a06010";
+  c.fillRect(couchX, couchY - 5, 12, couchBodyH + 5);
+
+  // Couch legs
+  c.fillStyle = "#7a4510";
+  c.fillRect(couchX + 14, couchY + couchBodyH, 8, 10);
+  c.fillRect(couchX + couchW - 22, couchY + couchBodyH, 8, 10);
+
+  // Bright window on the right — warm afternoon light
+  const winX = w * 0.78;
+  const winY = h * 0.08;
+  const winW = w * 0.18;
+  const winH = h * 0.5;
+  const winGrad = c.createLinearGradient(winX, winY, winX, winY + winH);
+  winGrad.addColorStop(0, "#fff4b0");
+  winGrad.addColorStop(0.5, "#ffe080");
+  winGrad.addColorStop(1, "#ffc040");
+  c.fillStyle = winGrad;
+  c.fillRect(winX, winY, winW, winH);
+
+  // Window light bloom spilling into room
+  const winBloom = c.createRadialGradient(winX, winY + winH * 0.4, 0, winX, winY + winH * 0.4, w * 0.55);
+  winBloom.addColorStop(0, "rgba(255,220,100,0.25)");
+  winBloom.addColorStop(0.4, "rgba(255,190,80,0.12)");
+  winBloom.addColorStop(1, "rgba(255,180,60,0)");
+  c.fillStyle = winBloom;
+  c.fillRect(0, 0, w, h);
+
+  c.strokeStyle = "#5a3a1a";
+  c.lineWidth = 5;
+  c.strokeRect(winX, winY, winW, winH);
+  // Cross muntin
+  c.beginPath();
+  c.moveTo(winX + winW / 2, winY);
+  c.lineTo(winX + winW / 2, winY + winH);
+  c.moveTo(winX, winY + winH / 2);
+  c.lineTo(winX + winW, winY + winH / 2);
+  c.stroke();
+
+  // PAINTED CARTOON DOG — rust-orange, standing on the floor
+  const dogX = w * 0.56;
+  const dogFloorY = h * 0.72 + 6;  // stand a bit on the floor, past baseboard
+  const dogH = 55;  // total dog height
+
+  // Dog shadow on floor
+  c.fillStyle = "rgba(0,0,0,0.18)";
+  c.beginPath();
+  c.ellipse(dogX, dogFloorY + 3, 38, 7, 0, 0, Math.PI * 2);
+  c.fill();
+
+  // Dog legs (below body)
+  const legTopY = dogFloorY - dogH * 0.38;
+  const legH = dogH * 0.38;
+  c.fillStyle = "#b85008";
+  // Rear legs
+  c.fillRect(dogX + 14, legTopY, 9, legH);
+  c.fillRect(dogX + 24, legTopY, 9, legH);
+  // Front legs
+  c.fillRect(dogX - 24, legTopY, 9, legH);
+  c.fillRect(dogX - 14, legTopY, 9, legH);
+
+  // Paws
+  c.fillStyle = "#a04008";
+  const pawY = dogFloorY;
+  c.beginPath(); c.ellipse(dogX - 19, pawY, 7, 4, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(dogX - 9, pawY, 7, 4, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(dogX + 18, pawY, 7, 4, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(dogX + 28, pawY, 7, 4, 0, 0, Math.PI * 2); c.fill();
+
+  // Dog body
+  const bodyY = dogFloorY - dogH * 0.75;
+  c.fillStyle = "#c86010";
+  c.beginPath();
+  c.ellipse(dogX, bodyY, 30, 20, 0, 0, Math.PI * 2);
+  c.fill();
+
+  // Dog belly (lighter)
+  c.fillStyle = "#e08830";
+  c.beginPath();
+  c.ellipse(dogX + 4, bodyY + 5, 20, 13, 0.15, 0, Math.PI * 2);
+  c.fill();
+
+  // Dog head (sits to the left of body, looking slightly up)
+  const headX = dogX - 25;
+  const headY = bodyY - 12;
+  c.fillStyle = "#c86010";
+  c.beginPath();
+  c.ellipse(headX, headY, 19, 17, -0.1, 0, Math.PI * 2);
+  c.fill();
+
+  // Snout
+  c.fillStyle = "#d07020";
+  c.beginPath();
+  c.ellipse(headX - 16, headY + 3, 11, 8, 0, 0, Math.PI * 2);
+  c.fill();
+
+  // Nose
+  c.fillStyle = "#2a1a0a";
+  c.beginPath();
+  c.ellipse(headX - 24, headY + 2, 4, 3, 0, 0, Math.PI * 2);
+  c.fill();
+
+  // Floppy ears
+  c.fillStyle = "#a05008";
+  c.beginPath();
+  c.ellipse(headX - 12, headY - 22, 7, 13, 0.35, 0, Math.PI * 2);
+  c.fill();
+  c.beginPath();
+  c.ellipse(headX + 3, headY - 23, 7, 13, -0.35, 0, Math.PI * 2);
+  c.fill();
+
+  // Eyes looking up/forward
+  c.fillStyle = "#1a1208";
+  c.beginPath(); c.arc(headX - 10, headY - 5, 3.5, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(headX + 3, headY - 6, 3.5, 0, Math.PI * 2); c.fill();
+  // Eye whites/highlights
+  c.fillStyle = "#ffffff";
+  c.beginPath(); c.arc(headX - 9, headY - 6, 1.2, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(headX + 4, headY - 7, 1.2, 0, Math.PI * 2); c.fill();
+
+  // Animated wagging tail
+  const wagAngle = Math.sin(t / 180) * 0.65;
+  c.strokeStyle = "#c86010";
+  c.lineWidth = 8;
+  c.lineCap = "round";
+  c.beginPath();
+  c.moveTo(dogX + 28, bodyY - 5);
+  c.quadraticCurveTo(
+    dogX + 40 + Math.cos(wagAngle) * 8,
+    bodyY - 15 + Math.sin(wagAngle) * 12,
+    dogX + 46 + Math.cos(wagAngle - 0.4) * 18,
+    bodyY - 8 + Math.sin(wagAngle - 0.4) * 18
+  );
+  c.stroke();
+  // Tail tip (lighter)
+  c.strokeStyle = "#e08030";
+  c.lineWidth = 5;
+  c.beginPath();
+  c.moveTo(dogX + 44 + Math.cos(wagAngle - 0.3) * 15, bodyY - 10 + Math.sin(wagAngle - 0.3) * 15);
+  c.lineTo(dogX + 50 + Math.cos(wagAngle - 0.6) * 14, bodyY - 5 + Math.sin(wagAngle - 0.6) * 14);
+  c.stroke();
+}
