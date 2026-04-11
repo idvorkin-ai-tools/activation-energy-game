@@ -3,7 +3,7 @@ import { Character } from "../../characters/Character";
 import { ARCADE_PALETTE } from "./palette";
 import { buildRunScenarios } from "./scenarios";
 import { createTileEl, animateTileFall, injectTileStyles } from "./tile";
-import type { Scenario } from "./types";
+import type { Scenario, Side, RoutingRecord } from "./types";
 import { WAVES } from "./types";
 
 /**
@@ -17,6 +17,9 @@ export class CatcherGame {
   private scenarioIndex = 0;
   private currentTile: HTMLDivElement | null = null;
   private cancelFall: (() => void) | null = null;
+  private routingHistory: RoutingRecord[] = [];
+  private tileDropTime = 0;
+  private tapHandler: ((e: MouseEvent | TouchEvent) => void) | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -161,6 +164,8 @@ export class CatcherGame {
 
     this.scenarios = buildRunScenarios();
     this.scenarioIndex = 0;
+    this.routingHistory = [];
+    this.attachTapHandlers();
     this.dropNextTile();
   }
 
@@ -183,6 +188,7 @@ export class CatcherGame {
     const waveIdx = this.currentWaveIndex();
     const secondsPerTile = WAVES[waveIdx].secondsPerTile;
 
+    this.tileDropTime = performance.now();
     this.cancelFall = animateTileFall(tile, startY, endY, secondsPerTile * 1000, () => {
       // Task 11 will record missed tiles
       tile.remove();
@@ -196,6 +202,87 @@ export class CatcherGame {
     if (this.scenarioIndex < WAVES[0].tileCount) return 0;
     if (this.scenarioIndex < WAVES[0].tileCount + WAVES[1].tileCount) return 1;
     return 2;
+  }
+
+  private attachTapHandlers(): void {
+    const stage = this.container.querySelector<HTMLDivElement>(".cp-stage")!;
+    this.tapHandler = (e: MouseEvent | TouchEvent) => {
+      if (!this.currentTile) return;
+      const rect = stage.getBoundingClientRect();
+      let clientX: number;
+      if (e instanceof TouchEvent) {
+        clientX = e.touches[0]?.clientX ?? e.changedTouches[0]?.clientX ?? 0;
+      } else {
+        clientX = e.clientX;
+      }
+      const side: Side = clientX - rect.left < rect.width / 2 ? "away" : "towards";
+      this.routeCurrentTile(side);
+    };
+    stage.addEventListener("click", this.tapHandler as (e: MouseEvent) => void);
+  }
+
+  private routeCurrentTile(side: Side): void {
+    if (!this.currentTile) return;
+    if (this.cancelFall) {
+      this.cancelFall();
+      this.cancelFall = null;
+    }
+    const tile = this.currentTile;
+    this.currentTile = null;
+    const scenario = this.scenarios[this.scenarioIndex];
+    const timeToRouteMs = performance.now() - this.tileDropTime;
+
+    this.routingHistory.push({
+      scenario,
+      routedAs: side,
+      timeToRouteMs,
+      ambivalent: false,
+      rerouted: false,
+    });
+
+    // Raccoon lean
+    this.leanRaccoon(side);
+
+    // Animate tile into the bin
+    const stage = this.container.querySelector<HTMLDivElement>(".cp-stage")!;
+    const stageRect = stage.getBoundingClientRect();
+    const targetX = side === "away" ? 60 : stageRect.width - 60;
+    const targetY = stageRect.height - 80;
+    const startLeft = tile.offsetLeft;
+    const startTop = tile.offsetTop;
+    const startTime = performance.now();
+    const duration = 280;
+
+    const tick = (now: number) => {
+      const t = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 2);
+      tile.style.left = `${startLeft + (targetX - startLeft) * eased}px`;
+      tile.style.top = `${startTop + (targetY - startTop) * eased}px`;
+      tile.style.opacity = `${1 - t * 0.4}`;
+      tile.style.transform = `translateX(-50%) scale(${1 - t * 0.2})`;
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        tile.remove();
+        this.scenarioIndex++;
+        this.resetRaccoonLean();
+        this.dropNextTile();
+      }
+    };
+    requestAnimationFrame(tick);
+  }
+
+  private leanRaccoon(side: Side): void {
+    const stage = this.container.querySelector<HTMLDivElement>(".cp-stage")!;
+    const rect = stage.getBoundingClientRect();
+    const baseX = rect.width / 2;
+    const baseY = rect.height * 0.62;
+    const offset = side === "away" ? -30 : 30;
+    this.raccoon.setPosition(baseX + offset, baseY);
+  }
+
+  private resetRaccoonLean(): void {
+    this.positionRaccoonAtDecisionLine();
   }
 
   private positionRaccoonAtDecisionLine(): void {

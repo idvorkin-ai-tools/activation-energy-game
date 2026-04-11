@@ -41,4 +41,21 @@ test.describe("Choice Point lesson", () => {
     const tileText = await page.locator(".cp-tile-text").textContent();
     expect(tileText?.length ?? 0).toBeGreaterThan(5);
   });
+
+  test("tapping right routes tile to towards bin and drops next", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    await expect(page.locator(".cp-tile")).toBeVisible();
+    const firstText = await page.locator(".cp-tile-text").textContent();
+
+    // Tap the right half of the stage (anywhere in the right half outside the tile)
+    const stage = page.locator(".cp-stage");
+    const box = (await stage.boundingBox())!;
+    await page.mouse.click(box.x + box.width * 0.75, box.y + box.height * 0.85);
+
+    // Next tile should appear with different text
+    await expect(page.locator(".cp-tile")).toBeVisible({ timeout: 2000 });
+    await page.waitForTimeout(400);
+    const secondText = await page.locator(".cp-tile-text").textContent();
+    expect(secondText).not.toBe(firstText);
+  });
 });
