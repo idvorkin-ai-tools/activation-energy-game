@@ -219,7 +219,7 @@ export class CatcherGame {
         <p><strong>AWAY moves</strong> — things you do when you're hooked by a hard feeling. Scrolling. Stalling. Numbing out.</p>
         <p>The twist: Harris doesn't ask "is this good?" or "is this thought true?"</p>
         <p class="cp-explain-workability">He asks: "Does this take me toward the life I want?"</p>
-        <p>It's never the form. Always the function. Going for a run can be towards (training) or away (anxiety-burn). Only you know.</p>
+        <p>It's never the form. Always the function. A chocolate-covered cherry can be towards (savored slowly with someone you love) or away (gorged after the fall). Only you know.</p>
         <p>One more thing: <em>YOU</em> define what's a towards move. This is your life.</p>
         <button class="cp-begin-btn cp-explain-btn">Start catching &rarr;</button>
         <p class="cp-explain-source">Based on Russ Harris's ACT. Notes at <a href="https://idvork.in/act" target="_blank" rel="noopener">idvork.in/act</a></p>
