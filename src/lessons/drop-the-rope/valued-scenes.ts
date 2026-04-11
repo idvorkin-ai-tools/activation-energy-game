@@ -333,3 +333,167 @@ export function drawValuedGym(ctx: ValuedSceneContext): void {
 
 /** Scene 3: Park bench at golden hour, raccoon getting a friend text. */
 
+export function drawValuedFriend(ctx: ValuedSceneContext): void {
+  const { ctx: c, w, h, t } = ctx;
+
+  // Golden hour sky — warm amber to burnt orange
+  const sky = c.createLinearGradient(0, 0, 0, h * 0.6);
+  sky.addColorStop(0, "#c87030");
+  sky.addColorStop(0.5, "#d88030");
+  sky.addColorStop(1, "#e89040");
+  c.fillStyle = sky;
+  c.fillRect(0, 0, w, h * 0.6);
+
+  // Sun glow (low on horizon, blurred golden disc)
+  const sunX = w * 0.75;
+  const sunY = h * 0.52;
+  const sunGlow = c.createRadialGradient(sunX, sunY, 0, sunX, sunY, w * 0.35);
+  sunGlow.addColorStop(0, "rgba(255,240,180,0.5)");
+  sunGlow.addColorStop(0.3, "rgba(255,200,80,0.2)");
+  sunGlow.addColorStop(1, "rgba(255,180,60,0)");
+  c.fillStyle = sunGlow;
+  c.fillRect(0, 0, w, h);
+
+  // Warm grassy ground
+  const grass = c.createLinearGradient(0, h * 0.6, 0, h);
+  grass.addColorStop(0, "#9a6a20");
+  grass.addColorStop(0.3, "#7a5010");
+  grass.addColorStop(1, "#4a2a08");
+  c.fillStyle = grass;
+  c.fillRect(0, h * 0.6, w, h * 0.4);
+
+  // Golden bokeh background trees (distant)
+  const treePositions = [0.0, 0.2, 0.42, 0.65, 0.82, 0.95];
+  for (const tx of treePositions) {
+    const treeGrad = c.createRadialGradient(tx * w, h * 0.48, 0, tx * w, h * 0.48, h * 0.15);
+    treeGrad.addColorStop(0, "rgba(40,25,5,0.75)");
+    treeGrad.addColorStop(1, "rgba(40,25,5,0)");
+    c.fillStyle = treeGrad;
+    c.beginPath();
+    c.arc(tx * w, h * 0.48, h * 0.15, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  // Main tree on the left
+  const treeX = w * 0.16;
+  // Trunk
+  c.fillStyle = "#3a2010";
+  c.fillRect(treeX - 6, h * 0.38, 12, h * 0.32);
+  // Crown
+  c.fillStyle = "#2a1a05";
+  c.beginPath();
+  c.arc(treeX, h * 0.3, h * 0.2, 0, Math.PI * 2);
+  c.fill();
+  // Warm golden leafy highlights
+  c.fillStyle = "rgba(200,140,20,0.25)";
+  c.beginPath();
+  c.arc(treeX + 18, h * 0.24, h * 0.12, 0, Math.PI * 2);
+  c.fill();
+  c.beginPath();
+  c.arc(treeX - 8, h * 0.22, h * 0.09, 0, Math.PI * 2);
+  c.fill();
+
+  // Fallen leaves (little amber shapes)
+  c.fillStyle = "rgba(180,100,20,0.4)";
+  for (let i = 0; i < 8; i++) {
+    c.beginPath();
+    c.ellipse(w * (0.05 + i * 0.12), h * 0.63, 5, 3, i * 0.8, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  // Park bench (warm brown wood)
+  const benchX = w * 0.3;
+  const benchY = h * 0.63;
+  const benchW = w * 0.4;
+
+  // Bench legs (draw first, behind seat)
+  c.fillStyle = "#5a3010";
+  // Left leg pair
+  c.beginPath();
+  c.moveTo(benchX + 10, benchY + 10);
+  c.lineTo(benchX + 5, benchY + 35);
+  c.lineTo(benchX + 18, benchY + 35);
+  c.lineTo(benchX + 22, benchY + 10);
+  c.closePath();
+  c.fill();
+  // Right leg pair
+  c.beginPath();
+  c.moveTo(benchX + benchW - 22, benchY + 10);
+  c.lineTo(benchX + benchW - 18, benchY + 35);
+  c.lineTo(benchX + benchW - 5, benchY + 35);
+  c.lineTo(benchX + benchW - 10, benchY + 10);
+  c.closePath();
+  c.fill();
+
+  // Bench back panel (solid, then slats)
+  c.fillStyle = "#8a5520";
+  c.fillRect(benchX + 5, benchY - 32, benchW - 10, 34);
+  // Backrest slat lines
+  c.strokeStyle = "#6a3810";
+  c.lineWidth = 1.5;
+  for (let i = 1; i < 5; i++) {
+    c.beginPath();
+    c.moveTo(benchX + 5 + i * ((benchW - 10) / 5), benchY - 32);
+    c.lineTo(benchX + 5 + i * ((benchW - 10) / 5), benchY + 2);
+    c.stroke();
+  }
+  // Top rail
+  c.fillStyle = "#9a6530";
+  c.fillRect(benchX + 3, benchY - 34, benchW - 6, 7);
+
+  // Seat
+  c.fillStyle = "#9a6030";
+  c.fillRect(benchX, benchY, benchW, 10);
+  // Seat slat lines
+  for (let i = 1; i < 5; i++) {
+    c.beginPath();
+    c.moveTo(benchX + i * (benchW / 5), benchY);
+    c.lineTo(benchX + i * (benchW / 5), benchY + 10);
+    c.stroke();
+  }
+  // Seat edge highlight
+  c.fillStyle = "#b08040";
+  c.fillRect(benchX, benchY, benchW, 3);
+
+  // Speech bubble notification (appears after 1s, fades in)
+  if (t > 800) {
+    const fadeFactor = Math.min(1, (t - 800) / 400);
+    const bubbleW = w * 0.38;
+    const bubbleH = 40;
+    const bubbleX = w * 0.36;
+    const bubbleY = h * 0.3;
+
+    c.save();
+    c.globalAlpha = fadeFactor;
+
+    // Bubble shadow
+    c.fillStyle = "rgba(0,0,0,0.12)";
+    c.beginPath();
+    c.roundRect(bubbleX + 2, bubbleY + 2, bubbleW, bubbleH, 8);
+    c.fill();
+
+    // Bubble
+    c.fillStyle = "rgba(255,255,255,0.97)";
+    c.beginPath();
+    c.roundRect(bubbleX, bubbleY, bubbleW, bubbleH, 8);
+    c.fill();
+
+    // Tail pointing down-left toward bench
+    c.beginPath();
+    c.moveTo(bubbleX + 22, bubbleY + bubbleH);
+    c.lineTo(bubbleX + 14, bubbleY + bubbleH + 11);
+    c.lineTo(bubbleX + 34, bubbleY + bubbleH);
+    c.closePath();
+    c.fill();
+
+    c.fillStyle = "#222222";
+    c.font = "13px sans-serif";
+    c.textAlign = "left";
+    c.fillText('"hey. coffee this week?"', bubbleX + 10, bubbleY + 26);
+
+    c.restore();
+  }
+}
+
+/** Scene 4: Writing at desk with warm amber lamp glow. */
+
