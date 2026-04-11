@@ -270,3 +270,28 @@ canvas {
     transition: none;
   }
 }
+
+.dtr-intro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #e0e0e0;
+  font-size: 28px;
+  font-style: italic;
+  opacity: 0;
+  transition: opacity 0.8s ease-out;
+  cursor: pointer;
+  padding: 32px;
+  z-index: 10;
+}
+.dtr-intro-visible {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dtr-intro {
+    transition: none;
+  }
+}
