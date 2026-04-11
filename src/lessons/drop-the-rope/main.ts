@@ -1,4 +1,5 @@
 import "../../style.css";
+import { DropTheRopeGame } from "./game.ts";
 
 const container = document.getElementById("game-container");
 if (!container) throw new Error("#game-container not found");
@@ -18,13 +19,18 @@ aboutModal.querySelector(".modal-backdrop")!.addEventListener("click", () => {
   aboutModal.classList.add("modal-hidden");
 });
 
-// Placeholder: game will be wired in Task 22
-container.innerHTML = `<div class="placeholder-text">
-  Drop the Rope — scaffolding in progress. Come back after Task 22.
-</div>`;
+const game = new DropTheRopeGame(container);
+void game.start();
 
-// Restart link (placeholder — will call game.restart() after Task 22)
+// Restart link in the header re-plays the whole lesson
 document.getElementById("restart-link")?.addEventListener("click", (e) => {
   e.preventDefault();
-  location.reload();
+  game.restart();
+});
+
+// Escape also restarts
+window.addEventListener("keydown", (e) => {
+  if (e.code === "Escape") {
+    game.restart();
+  }
 });
