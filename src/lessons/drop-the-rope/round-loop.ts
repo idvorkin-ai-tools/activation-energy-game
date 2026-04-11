@@ -3,10 +3,10 @@ import type { ExhaustionBar } from "./exhaustion-bar";
 import type { DropButton } from "./drop-button";
 import type { TauntBubble } from "./taunt-bubble";
 import type { RoundConfig } from "./types";
-import { drawWarmDawn } from "./warm-dawn";
-import { drawMonster, getMonster } from "./monsters";
-import { drawRope, type Point, type RopeState } from "./rope";
-import { announce, prefersReducedMotion } from "./a11y";
+import { drawWarmDawn } from "./warm-dawn.ts";
+import { drawMonster, getMonster } from "./monsters.ts";
+import { drawRope, type Point, type RopeState } from "./rope.ts";
+import { announce, prefersReducedMotion } from "./a11y.ts";
 
 // ========= Greying =========
 

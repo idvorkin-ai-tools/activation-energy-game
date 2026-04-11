@@ -1,4 +1,4 @@
-import { lerpColor } from "../../scenes/utils";
+import { lerpColor } from "../../scenes/utils.ts";
 
 /**
  * Draw the warm dawn earth world — amber sky, warm brown ground.
