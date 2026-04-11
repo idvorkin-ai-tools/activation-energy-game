@@ -111,6 +111,33 @@ test.describe("Choice Point lesson", () => {
     expect(reflectionShown || finishedWave !== "WAVE 1").toBeTruthy();
   });
 
+  test("raccoon remains visible during reflection beat", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    const stage = page.locator(".cp-stage");
+    const box = (await stage.boundingBox())!;
+    const clickX = box.x + box.width * 0.75;
+    const clickY = box.y + box.height * 0.85;
+
+    // Route tiles to the right until a reflection beat fires. streak5 guarantees
+    // it by the 5th same-side routing; ambiguous tiles may fire earlier.
+    for (let i = 0; i < 6; i++) {
+      if (await page.locator(".cp-reflection").isVisible().catch(() => false)) break;
+      if (!(await page.locator(".cp-tile").isVisible().catch(() => false))) {
+        await page.waitForTimeout(300);
+        continue;
+      }
+      await page.mouse.click(clickX, clickY);
+      await page.waitForTimeout(400);
+    }
+    await expect(page.locator(".cp-reflection")).toBeVisible({ timeout: 3000 });
+    // The raccoon canvas should still be visible (z-index above the overlay)
+    await expect(page.locator(".cp-raccoon-layer canvas")).toBeVisible();
+    const raccoonBox = await page.locator(".cp-raccoon-layer canvas").boundingBox();
+    expect(raccoonBox).not.toBeNull();
+    expect(raccoonBox!.width).toBeGreaterThan(0);
+    expect(raccoonBox!.height).toBeGreaterThan(0);
+  });
+
   test("reflection overlay has opacity transition style", async ({ page }) => {
     await page.click(".cp-begin-btn");
     // Structural test — verify the stylesheet has the transition rule

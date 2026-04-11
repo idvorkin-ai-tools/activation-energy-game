@@ -92,7 +92,7 @@ export class CatcherGame {
         border-top: 1.5px dashed ${ARCADE_PALETTE.decisionLine};
         opacity: 0.7;
       }
-      .cp-raccoon-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+      .cp-raccoon-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 11; }
       .cp-bins {
         position: absolute;
         left: 0; right: 0;
@@ -340,6 +340,9 @@ export class CatcherGame {
     const stage = this.container.querySelector<HTMLDivElement>(".cp-stage")!;
     const priorExpression = this.raccoon.getExpression();
     this.raccoon.setExpression("neutral");
+    // Walk raccoon beside the reflection tile so it stays visible above the overlay
+    const rect = stage.getBoundingClientRect();
+    this.raccoon.walkTo(rect.width / 2, rect.height * 0.4, 400);
     showReflectionBeat({
       stage,
       scenario,
@@ -355,8 +358,9 @@ export class CatcherGame {
         const overlay = stage.querySelector<HTMLDivElement>(".cp-reflection");
         overlay?.remove();
         this.reflectionState.sinceLastBeat = 0;
-        // Restore prior wave-appropriate expression
+        // Restore prior wave-appropriate expression and walk raccoon back
         this.raccoon.setExpression(priorExpression);
+        this.positionRaccoonAtDecisionLine();
         this.dropNextTile();
       },
     });
