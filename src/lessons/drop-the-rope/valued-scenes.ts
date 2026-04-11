@@ -497,3 +497,226 @@ export function drawValuedFriend(ctx: ValuedSceneContext): void {
 
 /** Scene 4: Writing at desk with warm amber lamp glow. */
 
+export function drawValuedWriting(ctx: ValuedSceneContext): void {
+  const { ctx: c, w, h, t } = ctx;
+
+  // Dim warm mauve room walls
+  c.fillStyle = "#6a3a4a";
+  c.fillRect(0, 0, w, h * 0.72);
+
+  // Warm brown floor
+  c.fillStyle = "#4a2a1a";
+  c.fillRect(0, h * 0.72, w, h * 0.28);
+  // Floor planks
+  c.strokeStyle = "#3a1a0a";
+  c.lineWidth = 1;
+  for (let px = 0; px < w; px += 38) {
+    c.beginPath();
+    c.moveTo(px, h * 0.72);
+    c.lineTo(px, h);
+    c.stroke();
+  }
+
+  // Bookcase shelves on left wall
+  const bcX = w * 0.01;
+  const bcW = w * 0.17;
+  const bcH = h * 0.58;
+  // Back panel
+  c.fillStyle = "#4a2a10";
+  c.fillRect(bcX, h * 0.06, bcW, bcH);
+  // Shelf boards
+  for (let s = 0; s <= 4; s++) {
+    c.fillStyle = "#5a3510";
+    c.fillRect(bcX, h * 0.06 + s * (bcH / 4), bcW, 6);
+  }
+  // Books (warm-toned spines)
+  const bookColors = ["#8a2020", "#20608a", "#5a8020", "#8a6020", "#6a2080", "#208a60", "#aa4010"];
+  for (let s = 0; s < 3; s++) {
+    const shelfY = h * 0.06 + s * (bcH / 4) + 8;
+    let bx = bcX + 5;
+    for (let b = 0; b < 6; b++) {
+      const bw = 8 + (b % 3) * 3;
+      c.fillStyle = bookColors[(s * 3 + b) % bookColors.length];
+      c.fillRect(bx, shelfY, bw, bcH / 4 - 10);
+      // Book spine highlight
+      c.fillStyle = "rgba(255,255,255,0.12)";
+      c.fillRect(bx + 1, shelfY, 2, bcH / 4 - 10);
+      bx += bw + 2;
+      if (bx > bcX + bcW - 12) break;
+    }
+  }
+
+  // Bookcase on the right
+  const bcX2 = w * 0.82;
+  c.fillStyle = "#4a2a10";
+  c.fillRect(bcX2, h * 0.06, bcW, bcH * 0.68);
+  for (let s = 0; s <= 3; s++) {
+    c.fillStyle = "#5a3510";
+    c.fillRect(bcX2, h * 0.06 + s * (bcH * 0.68 / 3), bcW, 5);
+  }
+  for (let s = 0; s < 2; s++) {
+    const shelfY2 = h * 0.06 + s * (bcH * 0.68 / 3) + 7;
+    let bx2 = bcX2 + 4;
+    for (let b = 0; b < 5; b++) {
+      const bw = 9 + (b % 2) * 4;
+      c.fillStyle = bookColors[(b * 2 + s + 2) % bookColors.length];
+      c.fillRect(bx2, shelfY2, bw, bcH * 0.68 / 3 - 8);
+      bx2 += bw + 2;
+      if (bx2 > bcX2 + bcW - 10) break;
+    }
+  }
+
+  // Night window (right side)
+  const winX = w * 0.74;
+  const winY = h * 0.06;
+  const winW = w * 0.2;
+  const winH = h * 0.3;
+  c.fillStyle = "#1a2040";
+  c.fillRect(winX, winY, winW, winH);
+  // Stars
+  c.fillStyle = "#ffffff";
+  const stars = [[0.2, 0.2], [0.6, 0.3], [0.4, 0.6], [0.8, 0.15], [0.15, 0.7], [0.75, 0.55]];
+  for (const [sx, sy] of stars) {
+    c.beginPath();
+    c.arc(winX + sx * winW, winY + sy * winH, 1, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.strokeStyle = "#5a3a1a";
+  c.lineWidth = 4;
+  c.strokeRect(winX, winY, winW, winH);
+  c.beginPath();
+  c.moveTo(winX + winW / 2, winY);
+  c.lineTo(winX + winW / 2, winY + winH);
+  c.moveTo(winX, winY + winH / 2);
+  c.lineTo(winX + winW, winY + winH / 2);
+  c.stroke();
+
+  // Wooden desk
+  c.fillStyle = "#8a5520";
+  c.fillRect(w * 0.12, h * 0.63, w * 0.76, 10);
+  c.fillStyle = "#6a3a10";
+  c.fillRect(w * 0.17, h * 0.73, 10, h * 0.27);
+  c.fillRect(w * 0.78, h * 0.73, 10, h * 0.27);
+
+  // Amber desk lamp
+  const lampBaseX = w * 0.25;
+  const lampBaseY = h * 0.63;
+  const lampArmTipX = w * 0.31;
+  const lampArmTipY = h * 0.44;
+
+  // Lamp glow (radial amber)
+  const glow = c.createRadialGradient(lampArmTipX, lampArmTipY + 18, 0, lampArmTipX, lampArmTipY + 18, w * 0.38);
+  glow.addColorStop(0, "rgba(255,200,80,0.65)");
+  glow.addColorStop(0.3, "rgba(255,170,50,0.3)");
+  glow.addColorStop(0.7, "rgba(255,140,30,0.12)");
+  glow.addColorStop(1, "rgba(255,130,20,0)");
+  c.fillStyle = glow;
+  c.fillRect(0, 0, w, h);
+
+  // Lamp base
+  c.fillStyle = "#7a4518";
+  c.fillRect(lampBaseX - 14, lampBaseY - 4, 28, 8);
+  c.fillRect(lampBaseX - 6, lampBaseY + 4, 12, 3);
+
+  // Lamp arm (two segments)
+  c.strokeStyle = "#5a3010";
+  c.lineWidth = 4;
+  c.beginPath();
+  c.moveTo(lampBaseX, lampBaseY);
+  c.lineTo(lampBaseX + 8, h * 0.53);
+  c.lineTo(lampArmTipX, lampArmTipY + 5);
+  c.stroke();
+
+  // Lamp shade (warm amber)
+  c.fillStyle = "#c8852a";
+  c.beginPath();
+  c.moveTo(lampArmTipX - 24, lampArmTipY + 5);
+  c.lineTo(lampArmTipX + 24, lampArmTipY + 5);
+  c.lineTo(lampArmTipX + 15, lampArmTipY - 22);
+  c.lineTo(lampArmTipX - 15, lampArmTipY - 22);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = "#8a5510";
+  c.lineWidth = 2;
+  c.stroke();
+  // Bright inner ring
+  c.fillStyle = "rgba(255,230,160,0.85)";
+  c.beginPath();
+  c.ellipse(lampArmTipX, lampArmTipY + 4, 12, 4, 0, 0, Math.PI * 2);
+  c.fill();
+
+  // Open notebook/book on desk — angled page tops suggest open spread
+  const nbX = w * 0.36;
+  const nbY = h * 0.54;
+  const nbW = w * 0.32;
+  const nbH = 58;
+  const spineX = nbX + nbW / 2;
+
+  // Notebook shadow
+  c.fillStyle = "rgba(0,0,0,0.28)";
+  c.beginPath();
+  c.roundRect(nbX + 4, nbY + 5, nbW, nbH, 3);
+  c.fill();
+
+  // Left page — slightly angled outward at top (like open book)
+  c.fillStyle = "#f5f0e0";
+  c.beginPath();
+  c.moveTo(nbX, nbY + 6);  // top-left slight inset
+  c.lineTo(spineX, nbY);   // top-right meets spine (raised center)
+  c.lineTo(spineX, nbY + nbH);
+  c.lineTo(nbX, nbY + nbH);
+  c.closePath();
+  c.fill();
+
+  // Right page — slightly angled outward at top
+  c.fillStyle = "#f8f3e8";
+  c.beginPath();
+  c.moveTo(spineX, nbY);          // top-left meets spine
+  c.lineTo(nbX + nbW, nbY + 6);  // top-right slight inset
+  c.lineTo(nbX + nbW, nbY + nbH);
+  c.lineTo(spineX, nbY + nbH);
+  c.closePath();
+  c.fill();
+
+  // Spine (slight 3D ridge)
+  const spineGrad = c.createLinearGradient(spineX - 3, nbY, spineX + 3, nbY);
+  spineGrad.addColorStop(0, "rgba(0,0,0,0.25)");
+  spineGrad.addColorStop(0.5, "rgba(255,255,255,0.1)");
+  spineGrad.addColorStop(1, "rgba(0,0,0,0.15)");
+  c.fillStyle = spineGrad;
+  c.fillRect(spineX - 3, nbY, 6, nbH);
+
+  // Cover edges (warm brown)
+  c.fillStyle = "#8a5520";
+  c.fillRect(nbX - 2, nbY + 2, 3, nbH);      // left cover edge
+  c.fillRect(nbX + nbW, nbY + 2, 3, nbH);    // right cover edge
+
+  // Ruled lines on left page
+  c.strokeStyle = "#c8c0a8";
+  c.lineWidth = 0.8;
+  for (let li = 0; li < 5; li++) {
+    c.beginPath();
+    c.moveTo(nbX + 6, nbY + 12 + li * 9);
+    c.lineTo(spineX - 6, nbY + 12 + li * 9);
+    c.stroke();
+  }
+
+  // Growing ink line (writing animation)
+  const maxInk = Math.min(spineX - nbX - 14, (t / 2500) * (spineX - nbX - 14));
+  c.strokeStyle = "#1a1820";
+  c.lineWidth = 1.5;
+  c.beginPath();
+  c.moveTo(nbX + 6, nbY + 22);
+  c.lineTo(nbX + 6 + maxInk, nbY + 23);
+  c.stroke();
+  if (t > 1200) {
+    const ink2 = Math.min(spineX - nbX - 20, ((t - 1200) / 2000) * (spineX - nbX - 20));
+    c.beginPath();
+    c.moveTo(nbX + 6, nbY + 31);
+    c.lineTo(nbX + 6 + ink2, nbY + 32);
+    c.stroke();
+  }
+}
+
+/** Scene 5: Warm living room with painted cartoon dog (not silhouette). */
+
