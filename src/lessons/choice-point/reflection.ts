@@ -69,6 +69,7 @@ export function showReflectionBeat(opts: ReflectionBeatOptions): HTMLDivElement 
   confirmBtn.addEventListener("click", () => opts.onResolve("confirmed"));
   dependsBtn.addEventListener("click", () => opts.onResolve("depends"));
   opts.stage.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add("cp-reflection-visible"));
   return overlay;
 }
 
@@ -95,7 +96,10 @@ export function injectReflectionStyles(): void {
       color: ${REFLECTION_PALETTE.questionText};
       font-family: Georgia, "Source Serif Pro", serif;
       z-index: 10;
+      opacity: 0;
+      transition: opacity 400ms ease;
     }
+    .cp-reflection.cp-reflection-visible { opacity: 1; }
     .cp-reflection-tile {
       width: 100%;
       max-width: 360px;

@@ -83,6 +83,16 @@ test.describe("Choice Point lesson", () => {
     expect(reflectionShown || finishedWave !== "WAVE 1").toBeTruthy();
   });
 
+  test("reflection overlay has opacity transition style", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    // Structural test — verify the stylesheet has the transition rule
+    const hasTransition = await page.evaluate(() => {
+      const style = document.getElementById("cp-reflection-styles");
+      return style?.textContent?.includes("transition") ?? false;
+    });
+    expect(hasTransition).toBeTruthy();
+  });
+
   test("HUD updates to wave 2 after 6 tiles routed", async ({ page }) => {
     await page.click(".cp-begin-btn");
     const stage = page.locator(".cp-stage");
