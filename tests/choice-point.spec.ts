@@ -157,3 +157,30 @@ test.describe("Choice Point lesson", () => {
     expect(secondText).not.toBe(firstText);
   });
 });
+
+test.describe("Choice Point — mobile viewport", () => {
+  test.use({
+    viewport: { width: 427, height: 933 },
+    deviceScaleFactor: 3,
+  });
+
+  test("layout fits on mobile", async ({ page }) => {
+    await page.goto("/lessons/choice-point/");
+    await expect(page.locator(".cp-intro")).toBeVisible();
+    await page.click(".cp-begin-btn");
+    await expect(page.locator(".cp-tile")).toBeVisible();
+    await expect(page.locator(".cp-bin-away")).toBeVisible();
+    await expect(page.locator(".cp-bin-towards")).toBeVisible();
+    // Raccoon must be inside the viewport
+    const raccoonBox = await page.locator(".cp-raccoon-layer canvas").boundingBox();
+    expect(raccoonBox).not.toBeNull();
+    expect(raccoonBox!.y + raccoonBox!.height).toBeLessThanOrEqual(933);
+  });
+
+  test("no horizontal overflow", async ({ page }) => {
+    await page.goto("/lessons/choice-point/");
+    await page.click(".cp-begin-btn");
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(scrollWidth).toBeLessThanOrEqual(427);
+  });
+});
