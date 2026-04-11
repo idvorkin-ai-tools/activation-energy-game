@@ -156,6 +156,45 @@ test.describe("Choice Point lesson", () => {
     const secondText = await page.locator(".cp-tile-text").textContent();
     expect(secondText).not.toBe(firstText);
   });
+
+  test("full playthrough reaches takeaway textarea", async ({ page }) => {
+    await page.goto("/lessons/choice-point/");
+    await page.click(".cp-begin-btn");
+    const stage = page.locator(".cp-stage");
+    const box = (await stage.boundingBox())!;
+
+    // Up to 80 clicks should be enough to route 22 tiles + handle reflection beats
+    for (let i = 0; i < 80; i++) {
+      if (await page.locator(".cp-ending").isVisible().catch(() => false)) break;
+      const reflection = page.locator(".cp-reflection");
+      if (await reflection.isVisible().catch(() => false)) {
+        await page.click(".cp-reflection-btn-primary");
+        await page.waitForTimeout(250);
+        continue;
+      }
+      if (await page.locator(".cp-tile").isVisible().catch(() => false)) {
+        const toRight = i % 2 === 0;
+        await page.mouse.click(
+          box.x + box.width * (toRight ? 0.75 : 0.25),
+          box.y + box.height * 0.85,
+        );
+        await page.waitForTimeout(300);
+        continue;
+      }
+      await page.waitForTimeout(200);
+    }
+
+    // Walk through the ending
+    for (let i = 0; i < 5; i++) {
+      const nextBtn = page.locator(".cp-ending-next");
+      if (await nextBtn.isVisible().catch(() => false)) {
+        await nextBtn.click();
+        await page.waitForTimeout(200);
+      }
+    }
+
+    await expect(page.locator(".cp-ending-textarea")).toBeVisible({ timeout: 3000 });
+  });
 });
 
 test.describe("Choice Point — mobile viewport", () => {
