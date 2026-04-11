@@ -13,6 +13,7 @@ import {
   injectReflectionStyles,
   type ReflectionState,
 } from "./reflection";
+import { EnergyBar } from "./energy-bar";
 
 /**
  * The Catcher — Choice Point lesson as arcade.
@@ -30,6 +31,7 @@ export class CatcherGame {
   private tapHandler: ((e: MouseEvent | TouchEvent) => void) | null = null;
   private lastWaveIndex = 0;
   private reflectionState: ReflectionState = newReflectionState();
+  private energyBar!: EnergyBar;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -172,6 +174,12 @@ export class CatcherGame {
     raccoonLayer.appendChild(this.raccoon.el);
     this.positionRaccoonAtDecisionLine();
 
+    // Energy bar at the top of the stage
+    const stage = this.container.querySelector<HTMLDivElement>(".cp-stage")!;
+    this.energyBar = new EnergyBar();
+    this.energyBar.reset();
+    stage.insertBefore(this.energyBar.el, stage.firstChild);
+
     this.scenarios = buildRunScenarios();
     this.scenarioIndex = 0;
     this.lastWaveIndex = 0;
@@ -216,6 +224,7 @@ export class CatcherGame {
           ambivalent: false,
           rerouted: false,
         });
+        this.energyBar.adjust(-2);
         tile.remove();
         this.currentTile = null;
         this.scenarioIndex++;
@@ -284,6 +293,9 @@ export class CatcherGame {
       rerouted: false,
     });
 
+    // Energy cost: -3 base, -5 extra if fast (under 500ms)
+    this.energyBar.adjust(timeToRouteMs < 500 ? -8 : -3);
+
     // Raccoon lean
     this.leanRaccoon(side);
 
@@ -336,6 +348,9 @@ export class CatcherGame {
         if (outcome === "depends") {
           const last = this.routingHistory[this.routingHistory.length - 1];
           if (last) last.ambivalent = true;
+          this.energyBar.adjust(10);
+        } else {
+          this.energyBar.adjust(5);
         }
         const overlay = stage.querySelector<HTMLDivElement>(".cp-reflection");
         overlay?.remove();

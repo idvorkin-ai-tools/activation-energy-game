@@ -35,6 +35,34 @@ test.describe("Choice Point lesson", () => {
     await expect(page.locator(".cp-raccoon-layer canvas")).toBeVisible();
   });
 
+  test("energy bar appears after tapping begin", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    await expect(page.locator(".cp-energy-bar")).toBeVisible();
+    await expect(page.locator(".cp-energy-fill")).toBeVisible();
+    const initialWidth = await page
+      .locator(".cp-energy-fill")
+      .evaluate((el) => (el as HTMLElement).style.width);
+    expect(initialWidth).toBe("100%");
+  });
+
+  test("energy bar fill shrinks after routing a tile", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    await expect(page.locator(".cp-tile")).toBeVisible();
+    const initialWidth = await page
+      .locator(".cp-energy-fill")
+      .evaluate((el) => (el as HTMLElement).style.width);
+
+    const stage = page.locator(".cp-stage");
+    const box = (await stage.boundingBox())!;
+    await page.mouse.click(box.x + box.width * 0.75, box.y + box.height * 0.85);
+    await page.waitForTimeout(500);
+
+    const afterWidth = await page
+      .locator(".cp-energy-fill")
+      .evaluate((el) => (el as HTMLElement).style.width);
+    expect(afterWidth).not.toBe(initialWidth);
+  });
+
   test("first tile appears after begin and shows scenario text", async ({ page }) => {
     await page.click(".cp-begin-btn");
     await expect(page.locator(".cp-tile")).toBeVisible({ timeout: 2000 });
