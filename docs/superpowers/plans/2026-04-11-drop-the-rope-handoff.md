@@ -29,23 +29,31 @@
 
 **Test state at handoff:** 26/26 across `monsters.test.ts` (10), `rope.test.ts` (3), `round-loop.test.ts` (13). `tsc --noEmit` exit 0. `npm run lint` clean.
 
-## What's in flight
+## Tasks 13–17: DONE by background subagent
 
-**Background subagent** was dispatched to execute **Tasks 13–17** (5 valued scenes):
+Background subagent completed all 5 valued scenes. Commits landed on `drop-the-rope-main`:
 
-- Task 13: `drawValued1Coffee` — home window + mug + steam + bird
-- Task 14: `drawValued2Gym` — **warm wooden** gym (NOT grey concrete `src/scenes/gym.ts`!) + kettlebell swing animation
-- Task 15: `drawValued3Friend` — park bench + tree + phone notification bubble
-- Task 16: `drawValued4Writing` — desk + notebook + lamp + paw/ink animation
-- Task 17: `drawValued5Dog` — warm living room + wood floor + couch + window + **painted cartoon dog** (NOT silhouette — rev 2 decision)
+| # | Task | Commit | Visual judgment (agent's own words) |
+|---|---|---|---|
+| 13 | Coffee at home | `0f6ad0e` | Warm amber/brown interior with dawn window, tree silhouettes, animated bird, small table with steaming mug — close match to reference minus the raccoon character. **Empty space on the left** that the reference fills with the raccoon; should read correctly once the raccoon layer is composited at runtime. |
+| 14 | Warm wooden gym + kettlebell swing | `cff617e` | Warm terracotta walls (not cool grey), wooden floor, bright sunlit window, kettlebell rack with 4 labelled bells, animated swing kettlebell — good match. |
+| 15 | Park bench + friend text | `754f6fb` | Golden hour amber sky, foreground tree with bokeh distance trees, well-structured park bench, speech bubble fading in — strong match. |
+| 16 | Writing at desk + warm lamp | `a0b55e0` | Dim mauve room, colorful bookshelves both sides, warm amber lamp glow, night window with stars, open-book notebook with angled page spread and animated ink lines — good match. |
+| 17 | Dog in living room (painted cartoon) | `81b9057` | Warm salmon walls, orange couch on left, bright window right, painted rust-orange dog with floppy ears, paws, animated wagging tail above the floor — good match. |
 
-Each scene gets its own commit with visual verification against `valued-N-*.png`. All scenes live in `src/lessons/drop-the-rope/valued-scenes.ts` (new file). Agent has strict instructions: stay on `drop-the-rope-main`, do not push, do not open a PR, commit one task at a time.
+All 5 scenes went through 2–3 visual refinement iterations against the reference PNGs. Key fixes the agent made during iteration:
+- Bench back geometry in scene 3 (initial version had floating slats)
+- Dog positioning above the baseboard in scene 5 (initial version had the dog "sinking")
+- Notebook in scene 4 now has an angled open-book shape, not a flat rectangle
+- Foam roller color in scene 2 changed from jarring red to warm brown
 
-**To check subagent status when you resume:** look at `git log drop-the-rope-main --oneline` — commits past `76d15a5` are the subagent's work. If commits 13/14/15/16/17 all landed, Task 17 is done. If fewer, either the agent hit a blocker (check its return message in the previous conversation) or it's still running.
+**State at handoff:** tsc clean, lint clean, 26/26 tests passing, `git status` clean.
+
+**One thing to verify during Task 22 visual walkthrough:** scene 1 (coffee) has empty space on the left where the runtime raccoon should land. If the raccoon's final runtime position overlaps the mug or doesn't fill that space visually, the composition will look unbalanced — tune `showValuedScene` raccoon positioning in Task 18 accordingly.
 
 ## What's next (tasks 18–25)
 
-After tasks 13–17 are verified, keep going in sequence:
+Tasks 18–25 are untouched. Keep going in sequence:
 
 ### Task 18: Wire valued scenes into round-loop + captions
 - Replace the 4-second placeholder `showValuedScene()` stub in `round-loop.ts` with real routing by `roundNum`.
