@@ -7,6 +7,13 @@ import { drawWarmDawn } from "./warm-dawn.ts";
 import { drawMonster, getMonster } from "./monsters.ts";
 import { drawRope, type Point, type RopeState } from "./rope.ts";
 import { announce, prefersReducedMotion } from "./a11y.ts";
+import {
+  drawValuedCoffee,
+  drawValuedGym,
+  drawValuedFriend,
+  drawValuedWriting,
+  drawValuedDog,
+} from "./valued-scenes.ts";
 
 // ========= Greying =========
 
@@ -408,14 +415,91 @@ async function fadeDesaturationBack(
   });
 }
 
-// Forward declared — will be implemented in Tasks 13-18
 async function showValuedScene(
-  _deps: RoundDeps,
-  _config: RoundConfig,
-  _roundNum: number,
-  _w: number,
-  _h: number,
+  deps: RoundDeps,
+  config: RoundConfig,
+  roundNum: number,
+  w: number,
+  h: number,
 ): Promise<void> {
-  // Placeholder — Tasks 13-18 will wire in per-round drawing
-  await new Promise((r) => setTimeout(r, 4000));
+  const { ctx, character } = deps;
+  const drawFns = [
+    drawValuedCoffee,
+    drawValuedGym,
+    drawValuedFriend,
+    drawValuedWriting,
+    drawValuedDog,
+  ];
+  const drawFn = drawFns[roundNum - 1];
+  const reduced = prefersReducedMotion();
+
+  // Crossfade: fade from warm dawn into scene over ~1s
+  const fadeStart = performance.now();
+  await new Promise<void>((resolve) => {
+    const loop = () => {
+      const elapsed = performance.now() - fadeStart;
+      const t = reduced ? 1 : Math.min(1, elapsed / 1000);
+      ctx.clearRect(0, 0, w, h);
+      drawWarmDawn(ctx, w, h, 1);
+      ctx.globalAlpha = t;
+      drawFn({ ctx, w, h, t: elapsed });
+      ctx.globalAlpha = 1;
+      if (t < 1) {
+        requestAnimationFrame(loop);
+      } else {
+        resolve();
+      }
+    };
+    loop();
+  });
+
+  // Raccoon walks to a scene-specific spot
+  const sceneSpot = [
+    { x: w * 0.28, y: h * 0.72 }, // coffee — at the table
+    { x: w * 0.5, y: h * 0.72 }, // gym — center with kettlebell
+    { x: w * 0.48, y: h * 0.72 }, // friend — on the bench
+    { x: w * 0.5, y: h * 0.72 }, // writing — at the desk
+    { x: w * 0.35, y: h * 0.72 }, // dog — entering the room
+  ][roundNum - 1];
+  await character.walkTo(sceneSpot.x, sceneSpot.y, reduced ? 0 : 1000);
+
+  // Play out the scene with animation for ~4.5s total
+  // Q5: caption fades in 2s after raccoon arrival
+  const playStart = performance.now();
+  const captionEl = ensureCaptionEl(deps.canvas);
+  captionEl.textContent = "";
+  captionEl.classList.remove("dtr-caption-visible");
+  let captionShown = false;
+  await new Promise<void>((resolve) => {
+    const loop = () => {
+      const elapsed = performance.now() - playStart;
+      ctx.clearRect(0, 0, w, h);
+      drawFn({ ctx, w, h, t: elapsed });
+      if (!captionShown && elapsed >= 2000) {
+        captionShown = true;
+        captionEl.textContent = config.captionText;
+        captionEl.classList.add("dtr-caption-visible");
+      }
+      if (elapsed >= 4500) {
+        resolve();
+      } else {
+        requestAnimationFrame(loop);
+      }
+    };
+    loop();
+  });
+
+  // Hide caption before next round
+  captionEl.classList.remove("dtr-caption-visible");
+}
+
+function ensureCaptionEl(canvas: HTMLCanvasElement): HTMLDivElement {
+  let el = document.getElementById("dtr-caption") as HTMLDivElement | null;
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "dtr-caption";
+    el.className = "dtr-caption";
+    (canvas.parentElement ?? document.body).appendChild(el);
+  }
+  return el;
 }
