@@ -6,12 +6,16 @@ export interface EndingOptions {
   container: HTMLElement;
   history: RoutingRecord[];
   raccoon: Character;
-  onDone: () => void;
 }
 
 /**
  * Runs the full ending sequence: fade → list → diagram → lesson → reconsider → takeaway.
  * Each screen pauses for user interaction.
+ *
+ * Note: the takeaway screen is terminal — the returned promise resolves once
+ * the takeaway is rendered, but there is no "done" signal. Exit from the
+ * takeaway is via the in-page `← back to the hub` link (a plain `<a href="/">`),
+ * not via a callback.
  */
 export async function runEndingSequence(opts: EndingOptions): Promise<void> {
   injectEndingStyles();
@@ -24,7 +28,6 @@ export async function runEndingSequence(opts: EndingOptions): Promise<void> {
   await showLessonScreen(root);
   await showReconsiderScreen(root, opts.history);
   await showTakeawayScreen(root, opts.raccoon);
-  opts.onDone();
 }
 
 async function showListScreen(root: HTMLDivElement, history: RoutingRecord[]): Promise<void> {
@@ -199,7 +202,6 @@ function injectEndingStyles(): void {
   const style = document.createElement("style");
   style.id = "cp-ending-styles";
   style.textContent = `
-    body.cp-ending-mode { background: ${REFLECTION_PALETTE.background}; }
     .cp-ending {
       position: relative;
       min-height: calc(100vh - 48px);

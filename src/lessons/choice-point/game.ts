@@ -241,14 +241,10 @@ export class CatcherGame {
   private async runEnding(): Promise<void> {
     // Import lazily to keep initial load simple
     const { runEndingSequence } = await import("./ending");
-    document.body.classList.add("cp-ending-mode");
     await runEndingSequence({
       container: this.container,
       history: this.routingHistory,
       raccoon: this.raccoon,
-      onDone: () => {
-        // Takeaway screen is terminal — user goes to hub via link
-      },
     });
   }
 
