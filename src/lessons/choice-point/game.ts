@@ -34,12 +34,14 @@ export class CatcherGame {
   private energyBar!: EnergyBar;
 
   private mode: "intro" | "explain" | "arcade" | "ending" = "intro";
+  private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
     container.innerHTML = "";
     container.style.padding = "0";
     this.injectStyles();
+    this.installKeydownHandler();
     this.showIntro();
   }
 
@@ -47,6 +49,21 @@ export class CatcherGame {
     this.container.innerHTML = "";
     this.mode = "intro";
     this.showIntro();
+  }
+
+  private installKeydownHandler(): void {
+    if (this.keydownHandler) return;
+    this.keydownHandler = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (this.mode === "arcade") {
+        e.preventDefault();
+        this.endNow();
+      } else if (this.mode === "ending") {
+        e.preventDefault();
+        window.location.href = "/";
+      }
+    };
+    window.addEventListener("keydown", this.keydownHandler);
   }
 
   private injectStyles(): void {
@@ -132,22 +149,25 @@ export class CatcherGame {
         color: ${ARCADE_PALETTE.hudText};
         letter-spacing: 1px;
       }
-      .cp-end-now {
+      .cp-close-btn {
         position: absolute;
-        bottom: 18px;
-        right: 20px;
+        top: 12px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
         background: transparent;
         border: none;
         color: ${ARCADE_PALETTE.hudText};
-        font-size: 11px;
-        letter-spacing: 1px;
-        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        font-size: 24px;
+        line-height: 1;
         cursor: pointer;
-        padding: 4px 8px;
-        opacity: 0.55;
-        z-index: 6;
+        padding: 0;
+        opacity: 0.6;
+        transition: opacity 0.15s;
+        z-index: 20;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
       }
-      .cp-end-now:hover { opacity: 1; }
+      .cp-close-btn:hover { opacity: 1; }
       .cp-explain p { text-align: left; }
       .cp-explain p:first-child { text-align: center; font-size: 22px; letter-spacing: 1px; margin-bottom: 28px; }
       .cp-explain strong { color: ${ARCADE_PALETTE.accent}; letter-spacing: 1px; }
@@ -210,8 +230,10 @@ export class CatcherGame {
   }
 
   private startArcade(): void {
+    this.mode = "arcade";
     this.container.innerHTML = `
       <div class="cp-stage">
+        <button class="cp-close-btn" type="button" aria-label="End and see the ending">&times;</button>
         <div class="cp-decision-line"></div>
         <div class="cp-raccoon-layer"></div>
         <div class="cp-bins">
@@ -225,7 +247,6 @@ export class CatcherGame {
           </div>
         </div>
         <div class="cp-hud"><span class="cp-hud-wave">WAVE 1</span></div>
-        <button class="cp-end-now" type="button">end now</button>
       </div>
     `;
     injectTileStyles();
@@ -252,8 +273,8 @@ export class CatcherGame {
     injectReflectionStyles();
     this.attachTapHandlers();
 
-    const endNowBtn = this.container.querySelector<HTMLButtonElement>(".cp-end-now");
-    endNowBtn?.addEventListener("click", (e) => {
+    const closeBtn = this.container.querySelector<HTMLButtonElement>(".cp-close-btn");
+    closeBtn?.addEventListener("click", (e) => {
       e.stopPropagation();
       this.endNow();
     });
@@ -333,6 +354,7 @@ export class CatcherGame {
   }
 
   private async runEnding(): Promise<void> {
+    this.mode = "ending";
     // Import lazily to keep initial load simple
     const { runEndingSequence } = await import("./ending");
     await runEndingSequence({

@@ -231,11 +231,18 @@ test.describe("Choice Point lesson", () => {
     await expect(page.locator(".cp-ending-list")).toBeVisible({ timeout: 3000 });
   });
 
-  test("end-now button jumps straight to the ending", async ({ page }) => {
+  test("clicking X close button jumps straight to the ending", async ({ page }) => {
     await tapToArcade(page);
-    await expect(page.locator(".cp-end-now")).toBeVisible();
+    await expect(page.locator(".cp-close-btn")).toBeVisible();
     await expect(page.locator(".cp-tile")).toBeVisible();
-    await page.click(".cp-end-now");
+    await page.click(".cp-close-btn");
+    await expect(page.locator(".cp-ending")).toBeVisible({ timeout: 3000 });
+  });
+
+  test("pressing Escape during arcade reaches the ending", async ({ page }) => {
+    await tapToArcade(page);
+    await expect(page.locator(".cp-tile")).toBeVisible();
+    await page.keyboard.press("Escape");
     await expect(page.locator(".cp-ending")).toBeVisible({ timeout: 3000 });
   });
 

@@ -19,8 +19,13 @@ export interface EndingOptions {
  */
 export async function runEndingSequence(opts: EndingOptions): Promise<void> {
   injectEndingStyles();
-  opts.container.innerHTML = `<div class="cp-ending"></div>`;
+  opts.container.innerHTML = `<div class="cp-ending"></div><button class="cp-ending-close cp-close-btn" type="button" aria-label="Back to the hub">&times;</button>`;
   const root = opts.container.querySelector<HTMLDivElement>(".cp-ending")!;
+  const closeBtn = opts.container.querySelector<HTMLButtonElement>(".cp-ending-close");
+  closeBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    window.location.href = "/";
+  });
   opts.raccoon.setExpression("tired");
 
   await showListScreen(root, opts.history);
@@ -270,6 +275,25 @@ function injectEndingStyles(): void {
       color: #a8b5c2; text-decoration: none;
       border-bottom: 1px solid #5e6c80; padding-bottom: 1px;
     }
+    .cp-ending-close {
+      position: fixed;
+      top: 60px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      background: transparent;
+      border: none;
+      color: #8a9aa8;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      opacity: 0.6;
+      transition: opacity 0.15s;
+      z-index: 30;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    .cp-ending-close:hover { opacity: 1; }
   `;
   document.head.appendChild(style);
 }
