@@ -156,6 +156,7 @@ export class CatcherGame {
         font-size: 12px;
         color: ${ARCADE_PALETTE.hudText};
         letter-spacing: 1px;
+        pointer-events: none;
       }
       .cp-close-btn {
         position: absolute;
