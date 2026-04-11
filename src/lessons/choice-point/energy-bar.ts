@@ -37,7 +37,7 @@ export class EnergyBar {
       .cp-energy-bar {
         position: absolute;
         left: 20px;
-        right: 20px;
+        right: 56px;
         top: 16px;
         z-index: 5;
         pointer-events: none;
