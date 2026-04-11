@@ -246,6 +246,22 @@ test.describe("Choice Point lesson", () => {
     await expect(page.locator(".cp-ending")).toBeVisible({ timeout: 3000 });
   });
 
+  test("restart link returns to intro with clean state", async ({ page }) => {
+    await tapToArcade(page);
+    await expect(page.locator(".cp-tile")).toBeVisible();
+    // Route one tile so routingHistory has an entry and a fall is in progress
+    const stage = page.locator(".cp-stage");
+    const box = (await stage.boundingBox())!;
+    await page.mouse.click(box.x + box.width * 0.75, box.y + box.height * 0.85);
+    await page.waitForTimeout(400);
+    // Click the restart link in the header
+    await page.click("#restart-link");
+    // Intro should appear again
+    await expect(page.locator(".cp-intro")).toBeVisible();
+    await expect(page.locator(".cp-tile")).toHaveCount(0);
+    await expect(page.locator(".cp-reflection")).toHaveCount(0);
+  });
+
   test("missed tile is recorded and next tile drops", async ({ page }) => {
     await tapToArcade(page);
     await expect(page.locator(".cp-tile")).toBeVisible();
