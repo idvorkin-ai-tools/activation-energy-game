@@ -34,4 +34,11 @@ test.describe("Choice Point lesson", () => {
     // Raccoon canvas (Character class appends a canvas)
     await expect(page.locator(".cp-raccoon-layer canvas")).toBeVisible();
   });
+
+  test("first tile appears after begin and shows scenario text", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    await expect(page.locator(".cp-tile")).toBeVisible({ timeout: 2000 });
+    const tileText = await page.locator(".cp-tile-text").textContent();
+    expect(tileText?.length ?? 0).toBeGreaterThan(5);
+  });
 });

@@ -1,6 +1,10 @@
 import "../../style.css";
 import { Character } from "../../characters/Character";
 import { ARCADE_PALETTE } from "./palette";
+import { buildRunScenarios } from "./scenarios";
+import { createTileEl, animateTileFall, injectTileStyles } from "./tile";
+import type { Scenario } from "./types";
+import { WAVES } from "./types";
 
 /**
  * The Catcher — Choice Point lesson as arcade.
@@ -9,6 +13,10 @@ import { ARCADE_PALETTE } from "./palette";
 export class CatcherGame {
   private container: HTMLElement;
   private raccoon!: Character;
+  private scenarios: Scenario[] = [];
+  private scenarioIndex = 0;
+  private currentTile: HTMLDivElement | null = null;
+  private cancelFall: (() => void) | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -141,6 +149,7 @@ export class CatcherGame {
         <div class="cp-hud"><span class="cp-hud-wave">WAVE 1</span></div>
       </div>
     `;
+    injectTileStyles();
 
     // Raccoon on its own layer
     const raccoonLayer = this.container.querySelector<HTMLDivElement>(".cp-raccoon-layer")!;
@@ -149,6 +158,44 @@ export class CatcherGame {
     this.raccoon.setExpression("neutral");
     raccoonLayer.appendChild(this.raccoon.el);
     this.positionRaccoonAtDecisionLine();
+
+    this.scenarios = buildRunScenarios();
+    this.scenarioIndex = 0;
+    this.dropNextTile();
+  }
+
+  private dropNextTile(): void {
+    if (this.scenarioIndex >= this.scenarios.length) {
+      // All tiles done — ending sequence (Task 12)
+      return;
+    }
+    const scenario = this.scenarios[this.scenarioIndex];
+    const stage = this.container.querySelector<HTMLDivElement>(".cp-stage")!;
+    const stageRect = stage.getBoundingClientRect();
+
+    const tile = createTileEl(scenario);
+    tile.style.top = "-60px";
+    stage.appendChild(tile);
+    this.currentTile = tile;
+
+    const startY = -60;
+    const endY = stageRect.height * 0.6; // decision line
+    const waveIdx = this.currentWaveIndex();
+    const secondsPerTile = WAVES[waveIdx].secondsPerTile;
+
+    this.cancelFall = animateTileFall(tile, startY, endY, secondsPerTile * 1000, () => {
+      // Task 11 will record missed tiles
+      tile.remove();
+      this.currentTile = null;
+      this.scenarioIndex++;
+      this.dropNextTile();
+    });
+  }
+
+  private currentWaveIndex(): number {
+    if (this.scenarioIndex < WAVES[0].tileCount) return 0;
+    if (this.scenarioIndex < WAVES[0].tileCount + WAVES[1].tileCount) return 1;
+    return 2;
   }
 
   private positionRaccoonAtDecisionLine(): void {
