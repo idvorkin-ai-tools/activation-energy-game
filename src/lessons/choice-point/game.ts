@@ -447,9 +447,9 @@ export class CatcherGame {
     const stage = this.container.querySelector<HTMLDivElement>(".cp-stage")!;
     const priorExpression = this.raccoon.getExpression();
     this.raccoon.setExpression("neutral");
-    // Walk raccoon beside the reflection tile so it stays visible above the overlay
+    // Walk raccoon below the reflection buttons so it's visible and doesn't block taps
     const rect = stage.getBoundingClientRect();
-    this.raccoon.walkTo(rect.width / 2, rect.height * 0.4, 400);
+    this.raccoon.walkTo(rect.width / 2, rect.height * 0.72, 400);
     showReflectionBeat({
       stage,
       scenario,
