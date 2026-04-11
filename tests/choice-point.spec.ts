@@ -16,4 +16,11 @@ test.describe("Choice Point lesson", () => {
     await page.click("#modal-close");
     await expect(page.locator("#about-modal")).toHaveClass(/modal-hidden/);
   });
+
+  test("intro screen shows Harris framing and a begin button", async ({ page }) => {
+    await expect(page.locator(".cp-intro")).toBeVisible();
+    await expect(page.locator(".cp-intro")).toContainText("Harris");
+    await expect(page.locator(".cp-begin-btn")).toBeVisible();
+    await expect(page.locator(".cp-begin-btn")).toContainText(/tap to begin/i);
+  });
 });
