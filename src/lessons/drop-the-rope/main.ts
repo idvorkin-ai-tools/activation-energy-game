@@ -1,3 +1,5 @@
+import "../../style.css";
+
 const container = document.getElementById("game-container");
 if (!container) throw new Error("#game-container not found");
 
@@ -12,8 +14,8 @@ aboutLink.addEventListener("click", (e) => {
 modalClose.addEventListener("click", () => {
   aboutModal.classList.add("modal-hidden");
 });
-aboutModal.addEventListener("click", (e) => {
-  if (e.target === aboutModal) aboutModal.classList.add("modal-hidden");
+aboutModal.querySelector(".modal-backdrop")!.addEventListener("click", () => {
+  aboutModal.classList.add("modal-hidden");
 });
 
 // Placeholder: game will be wired in Task 22
