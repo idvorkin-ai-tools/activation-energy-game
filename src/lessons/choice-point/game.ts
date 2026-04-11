@@ -20,6 +20,7 @@ export class CatcherGame {
   private routingHistory: RoutingRecord[] = [];
   private tileDropTime = 0;
   private tapHandler: ((e: MouseEvent | TouchEvent) => void) | null = null;
+  private lastWaveIndex = 0;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -164,6 +165,7 @@ export class CatcherGame {
 
     this.scenarios = buildRunScenarios();
     this.scenarioIndex = 0;
+    this.lastWaveIndex = 0;
     this.routingHistory = [];
     this.attachTapHandlers();
     this.dropNextTile();
@@ -171,8 +173,13 @@ export class CatcherGame {
 
   private dropNextTile(): void {
     if (this.scenarioIndex >= this.scenarios.length) {
-      // All tiles done — ending sequence (Task 12)
+      this.runEnding();
       return;
+    }
+    const waveIdx = this.currentWaveIndex();
+    if (waveIdx !== this.lastWaveIndex) {
+      this.onWaveChange(waveIdx);
+      this.lastWaveIndex = waveIdx;
     }
     const scenario = this.scenarios[this.scenarioIndex];
     const stage = this.container.querySelector<HTMLDivElement>(".cp-stage")!;
@@ -185,7 +192,6 @@ export class CatcherGame {
 
     const startY = -60;
     const endY = stageRect.height * 0.6; // decision line
-    const waveIdx = this.currentWaveIndex();
     const secondsPerTile = WAVES[waveIdx].secondsPerTile;
 
     this.tileDropTime = performance.now();
@@ -202,6 +208,19 @@ export class CatcherGame {
     if (this.scenarioIndex < WAVES[0].tileCount) return 0;
     if (this.scenarioIndex < WAVES[0].tileCount + WAVES[1].tileCount) return 1;
     return 2;
+  }
+
+  private onWaveChange(waveIdx: number): void {
+    const label = this.container.querySelector<HTMLSpanElement>(".cp-hud-wave");
+    if (label) label.textContent = `WAVE ${waveIdx + 1}`;
+    if (waveIdx === 0) this.raccoon.setExpression("neutral");
+    else if (waveIdx === 1) this.raccoon.setExpression("tired");
+    else this.raccoon.setExpression("stressed");
+  }
+
+  private runEnding(): void {
+    // Placeholder — implemented in Task 12
+    this.container.innerHTML = "<div style='color:#fff;padding:40px;text-align:center;font-size:20px'>ENDING (placeholder)</div>";
   }
 
   private attachTapHandlers(): void {

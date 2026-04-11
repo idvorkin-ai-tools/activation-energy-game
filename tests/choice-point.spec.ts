@@ -58,4 +58,21 @@ test.describe("Choice Point lesson", () => {
     const secondText = await page.locator(".cp-tile-text").textContent();
     expect(secondText).not.toBe(firstText);
   });
+
+  test("HUD updates to wave 2 after 6 tiles routed", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    const stage = page.locator(".cp-stage");
+    const box = (await stage.boundingBox())!;
+    const clickX = box.x + box.width * 0.75;
+    const clickY = box.y + box.height * 0.85;
+
+    // Route 6 tiles to finish wave 1
+    for (let i = 0; i < 6; i++) {
+      await expect(page.locator(".cp-tile")).toBeVisible({ timeout: 3000 });
+      await page.mouse.click(clickX, clickY);
+      await page.waitForTimeout(400);
+    }
+
+    await expect(page.locator(".cp-hud-wave")).toContainText("WAVE 2", { timeout: 3000 });
+  });
 });
