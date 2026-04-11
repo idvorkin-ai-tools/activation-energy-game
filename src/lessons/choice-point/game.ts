@@ -5,6 +5,14 @@ import { buildRunScenarios } from "./scenarios";
 import { createTileEl, animateTileFall, injectTileStyles } from "./tile";
 import type { Scenario, Side, RoutingRecord } from "./types";
 import { WAVES } from "./types";
+import {
+  newReflectionState,
+  updateReflectionState,
+  shouldTriggerReflection,
+  showReflectionBeat,
+  injectReflectionStyles,
+  type ReflectionState,
+} from "./reflection";
 
 /**
  * The Catcher — Choice Point lesson as arcade.
@@ -21,6 +29,7 @@ export class CatcherGame {
   private tileDropTime = 0;
   private tapHandler: ((e: MouseEvent | TouchEvent) => void) | null = null;
   private lastWaveIndex = 0;
+  private reflectionState: ReflectionState = newReflectionState();
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -167,6 +176,8 @@ export class CatcherGame {
     this.scenarioIndex = 0;
     this.lastWaveIndex = 0;
     this.routingHistory = [];
+    this.reflectionState = newReflectionState();
+    injectReflectionStyles();
     this.attachTapHandlers();
     this.dropNextTile();
   }
@@ -285,10 +296,41 @@ export class CatcherGame {
         tile.remove();
         this.scenarioIndex++;
         this.resetRaccoonLean();
-        this.dropNextTile();
+
+        // Update reflection state and maybe trigger a beat
+        this.reflectionState = updateReflectionState(this.reflectionState, side, timeToRouteMs);
+        const trigger = shouldTriggerReflection(this.reflectionState, scenario);
+        if (trigger) {
+          this.triggerReflectionBeat(scenario, side);
+        } else {
+          this.dropNextTile();
+        }
       }
     };
     requestAnimationFrame(tick);
+  }
+
+  private triggerReflectionBeat(scenario: Scenario, side: Side): void {
+    const stage = this.container.querySelector<HTMLDivElement>(".cp-stage")!;
+    const priorExpression = this.raccoon.getExpression();
+    this.raccoon.setExpression("neutral");
+    showReflectionBeat({
+      stage,
+      scenario,
+      side,
+      onResolve: (outcome) => {
+        if (outcome === "depends") {
+          const last = this.routingHistory[this.routingHistory.length - 1];
+          if (last) last.ambivalent = true;
+        }
+        const overlay = stage.querySelector<HTMLDivElement>(".cp-reflection");
+        overlay?.remove();
+        this.reflectionState.sinceLastBeat = 0;
+        // Restore prior wave-appropriate expression
+        this.raccoon.setExpression(priorExpression);
+        this.dropNextTile();
+      },
+    });
   }
 
   private leanRaccoon(side: Side): void {
