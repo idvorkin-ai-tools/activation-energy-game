@@ -207,11 +207,20 @@ export class CatcherGame {
 
     this.tileDropTime = performance.now();
     this.cancelFall = animateTileFall(tile, startY, endY, secondsPerTile * 1000, () => {
-      // Task 11 will record missed tiles
-      tile.remove();
-      this.currentTile = null;
-      this.scenarioIndex++;
-      this.dropNextTile();
+      if (this.currentTile === tile) {
+        // Tile was not routed — record as missed
+        this.routingHistory.push({
+          scenario,
+          routedAs: "missed",
+          timeToRouteMs: performance.now() - this.tileDropTime,
+          ambivalent: false,
+          rerouted: false,
+        });
+        tile.remove();
+        this.currentTile = null;
+        this.scenarioIndex++;
+        this.dropNextTile();
+      }
     });
   }
 

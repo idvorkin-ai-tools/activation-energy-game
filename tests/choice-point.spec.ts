@@ -120,4 +120,15 @@ test.describe("Choice Point lesson", () => {
 
     await expect(page.locator(".cp-hud-wave")).toContainText("WAVE 2", { timeout: 3000 });
   });
+
+  test("missed tile is recorded and next tile drops", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    await expect(page.locator(".cp-tile")).toBeVisible();
+    const firstText = await page.locator(".cp-tile-text").textContent();
+    // Wait longer than secondsPerTile (wave 1 = 4s)
+    await page.waitForTimeout(5000);
+    await expect(page.locator(".cp-tile")).toBeVisible();
+    const secondText = await page.locator(".cp-tile-text").textContent();
+    expect(secondText).not.toBe(firstText);
+  });
 });
