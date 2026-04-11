@@ -295,3 +295,46 @@ canvas {
     transition: none;
   }
 }
+
+.dtr-ending {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 48px;
+  pointer-events: none;
+  z-index: 10;
+}
+.dtr-ending > div {
+  opacity: 0;
+  transition: opacity 1.2s ease-out;
+  margin-top: 12px;
+}
+.dtr-ending-line1,
+.dtr-ending-line2 {
+  font-size: 22px;
+  color: #e0e0e0;
+  font-style: italic;
+  text-align: center;
+  padding: 0 24px;
+}
+.dtr-ending-actions {
+  display: flex;
+  gap: 24px;
+  pointer-events: auto;
+}
+.dtr-ending-actions a {
+  color: #93c5fd;
+  text-decoration: none;
+  font-size: 18px;
+}
+.dtr-ending-actions a:hover {
+  text-decoration: underline;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dtr-ending > div {
+    transition: none;
+  }
+}
