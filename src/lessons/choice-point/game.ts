@@ -28,7 +28,7 @@ export class CatcherGame {
   private cancelFall: (() => void) | null = null;
   private routingHistory: RoutingRecord[] = [];
   private tileDropTime = 0;
-  private tapHandler: ((e: MouseEvent | TouchEvent) => void) | null = null;
+  private tapHandler: ((e: MouseEvent) => void) | null = null;
   private lastWaveIndex = 0;
   private reflectionState: ReflectionState = newReflectionState();
   private energyBar!: EnergyBar;
@@ -366,19 +366,13 @@ export class CatcherGame {
 
   private attachTapHandlers(): void {
     const stage = this.container.querySelector<HTMLDivElement>(".cp-stage")!;
-    this.tapHandler = (e: MouseEvent | TouchEvent) => {
+    this.tapHandler = (e: MouseEvent) => {
       if (!this.currentTile) return;
       const rect = stage.getBoundingClientRect();
-      let clientX: number;
-      if (e instanceof TouchEvent) {
-        clientX = e.touches[0]?.clientX ?? e.changedTouches[0]?.clientX ?? 0;
-      } else {
-        clientX = e.clientX;
-      }
-      const side: Side = clientX - rect.left < rect.width / 2 ? "away" : "towards";
+      const side: Side = e.clientX - rect.left < rect.width / 2 ? "away" : "towards";
       this.routeCurrentTile(side);
     };
-    stage.addEventListener("click", this.tapHandler as (e: MouseEvent) => void);
+    stage.addEventListener("click", this.tapHandler);
   }
 
   private routeCurrentTile(side: Side): void {
