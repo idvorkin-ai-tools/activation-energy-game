@@ -121,6 +121,31 @@ test.describe("Choice Point lesson", () => {
     await expect(page.locator(".cp-hud-wave")).toContainText("WAVE 2", { timeout: 3000 });
   });
 
+  test("ending list appears after all tiles routed", async ({ page }) => {
+    await page.click(".cp-begin-btn");
+    const stage = page.locator(".cp-stage");
+    const box = (await stage.boundingBox())!;
+    // Route 22 tiles by repeatedly clicking right; tap the reflection button if it appears
+    for (let i = 0; i < 30; i++) {
+      const reflection = page.locator(".cp-reflection");
+      if (await reflection.isVisible().catch(() => false)) {
+        await page.click(".cp-reflection-btn-primary");
+        await page.waitForTimeout(300);
+        continue;
+      }
+      if (await page.locator(".cp-tile").isVisible().catch(() => false)) {
+        await page.mouse.click(box.x + box.width * 0.75, box.y + box.height * 0.85);
+        await page.waitForTimeout(350);
+        continue;
+      }
+      // Check if we've reached the ending
+      if (await page.locator(".cp-ending").isVisible().catch(() => false)) break;
+      await page.waitForTimeout(200);
+    }
+    await expect(page.locator(".cp-ending")).toBeVisible({ timeout: 3000 });
+    await expect(page.locator(".cp-ending-list")).toBeVisible({ timeout: 3000 });
+  });
+
   test("missed tile is recorded and next tile drops", async ({ page }) => {
     await page.click(".cp-begin-btn");
     await expect(page.locator(".cp-tile")).toBeVisible();

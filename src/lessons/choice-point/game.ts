@@ -238,9 +238,18 @@ export class CatcherGame {
     else this.raccoon.setExpression("stressed");
   }
 
-  private runEnding(): void {
-    // Placeholder — implemented in Task 12
-    this.container.innerHTML = "<div style='color:#fff;padding:40px;text-align:center;font-size:20px'>ENDING (placeholder)</div>";
+  private async runEnding(): Promise<void> {
+    // Import lazily to keep initial load simple
+    const { runEndingSequence } = await import("./ending");
+    document.body.classList.add("cp-ending-mode");
+    await runEndingSequence({
+      container: this.container,
+      history: this.routingHistory,
+      raccoon: this.raccoon,
+      onDone: () => {
+        // Takeaway screen is terminal — user goes to hub via link
+      },
+    });
   }
 
   private attachTapHandlers(): void {
