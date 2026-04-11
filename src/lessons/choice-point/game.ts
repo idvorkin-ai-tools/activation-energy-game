@@ -46,8 +46,16 @@ export class CatcherGame {
   }
 
   restart(): void {
-    this.container.innerHTML = "";
+    // Cancel any in-flight animations and clear state
+    this.cancelFall?.();
+    this.cancelFall = null;
+    this.currentTile = null;
+    this.scenarioIndex = 0;
+    this.routingHistory = [];
+    this.lastWaveIndex = 0;
+    this.reflectionState = newReflectionState();
     this.mode = "intro";
+    this.container.innerHTML = "";
     this.showIntro();
   }
 
