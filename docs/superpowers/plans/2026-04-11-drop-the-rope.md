@@ -10,7 +10,27 @@
 
 **Design doc:** `docs/plans/2026-04-11-drop-the-rope-monster-gallery-design.md` (rev 3 — all 11 open questions locked).
 
+**Visual references:** `docs/design-refs/drop-the-rope/` contains the Gemini preview renders used during brainstorming. These are the authoritative visual targets for each monster and valued scene:
+
+| File | What it shows |
+|---|---|
+| `monster-a2-warm.png` | The world palette (warm dawn earth) and the Anxiety-vs-raccoon tug-of-war composition |
+| `lineup-1-anxiety.png` | Anxiety monster at ~180px height — tall smoke wisp, cold blue accent |
+| `lineup-2-self-criticism.png` | Self-Criticism — squat cyclops, pink glow, jagged teeth |
+| `lineup-3-shame.png` | Shame — curled sphere, wrapped arms, violet accent |
+| `lineup-4-doubt.png` | Doubt — two heads facing opposite directions, teal accent |
+| `lineup-5-anger.png` | Anger — broad shoulders, horns, red visor eye, huge fists |
+| `valued-1-coffee.png` | Coffee at home after Anxiety |
+| `valued-2-gym.png` | Kettlebell swing (NOTE: warm wooden gym, not the grey concrete `src/scenes/gym.ts`) |
+| `valued-3-friend.png` | Park bench + friend text after Shame |
+| `valued-4-writing.png` | Desk + notebook + warm lamp glow |
+| `valued-5-dog.png` | Warm painted cartoon dog (not silhouette — rev 2 decision) |
+
+Visual verification steps in each task reference these files. When the task says "compare to `lineup-4-doubt.png`", use the Read tool to view the image alongside your rendered output.
+
 **Prerequisite:** PR #8 (mismatched Crocs) must merge before Task 3. That PR extends `drawRaccoon` to draw left-blue / right-yellow Crocs so the in-game raccoon matches the canonical style.
+
+**Testing conventions in this project:** The project uses `@playwright/test` for E2E only — there is NO vitest, jest, or unit test runner installed (`npm run test` maps to `playwright test`). For unit tests of pure logic (state-machine helpers, tension math), this plan uses Node's built-in test runner (`node --test`, available since Node 18) which requires zero new dependencies. Integration/visual tests go through Playwright.
 
 ---
 
@@ -407,71 +427,81 @@ git commit -m "feat: drop-the-rope types — Monster, RoundConfig, GameState"
 
 - [ ] **Step 1: Write the failing unit test**
 
-Create `src/lessons/drop-the-rope/monsters.test.ts`:
+Create `src/lessons/drop-the-rope/monsters.test.ts`. Use Node's built-in test runner (`node --test`) — the project has no unit test framework, and this avoids adding a dependency.
 
 ```typescript
-import { describe, it, expect } from "vitest";
-import { MONSTERS, ROUND_CONFIGS, getMonster, getRoundConfig } from "./monsters";
-import type { MonsterId } from "./types";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { MONSTERS, ROUND_CONFIGS, getMonster, getRoundConfig } from "./monsters.ts";
+import type { MonsterId } from "./types.ts";
 
-describe("MONSTERS", () => {
-  it("has exactly 5 monsters", () => {
-    expect(MONSTERS).toHaveLength(5);
-  });
-
-  it("has the expected ids in order", () => {
-    const expected: MonsterId[] = ["anxiety", "self-criticism", "shame", "doubt", "anger"];
-    expect(MONSTERS.map(m => m.id)).toEqual(expected);
-  });
-
-  it("anxiety is round 1", () => {
-    expect(getMonster("anxiety").round).toBe(1);
-  });
-
-  it("doubt has the revised teal accent color #5EA5B5", () => {
-    // Revised during Q1 brainstorm: grey would vanish against amber dawn
-    expect(getMonster("doubt").accentColor).toBe("#5EA5B5");
-  });
+test("MONSTERS: has exactly 5 monsters", () => {
+  assert.equal(MONSTERS.length, 5);
 });
 
-describe("ROUND_CONFIGS", () => {
-  it("has 5 entries", () => {
-    expect(ROUND_CONFIGS).toHaveLength(5);
-  });
+test("MONSTERS: has the expected ids in order", () => {
+  const expected: MonsterId[] = ["anxiety", "self-criticism", "shame", "doubt", "anger"];
+  assert.deepEqual(MONSTERS.map(m => m.id), expected);
+});
 
-  it("round 1 drop timer is 18 seconds", () => {
-    expect(getRoundConfig(1).dropTimerMs).toBe(18000);
-  });
+test("MONSTERS: anxiety is round 1", () => {
+  assert.equal(getMonster("anxiety").round, 1);
+});
 
-  it("round 5 drop timer is 0.5 seconds", () => {
-    expect(getRoundConfig(5).dropTimerMs).toBe(500);
-  });
+test("MONSTERS: doubt has the revised teal accent color #5EA5B5", () => {
+  // Revised during Q1 brainstorm: grey would vanish against amber dawn
+  assert.equal(getMonster("doubt").accentColor, "#5EA5B5");
+});
 
-  it("round 5 has a compressed monster walk-in (0.5s)", () => {
-    // Q4 decision: the whole round 5 is compressed, not just the button
-    expect(getRoundConfig(5).monsterWalkInMs).toBe(500);
-  });
+test("ROUND_CONFIGS: has 5 entries", () => {
+  assert.equal(ROUND_CONFIGS.length, 5);
+});
 
-  it("drop timers are strictly decreasing", () => {
-    for (let i = 0; i < ROUND_CONFIGS.length - 1; i++) {
-      expect(ROUND_CONFIGS[i].dropTimerMs).toBeGreaterThan(ROUND_CONFIGS[i + 1].dropTimerMs);
-    }
-  });
+test("ROUND_CONFIGS: round 1 drop timer is 18 seconds", () => {
+  assert.equal(getRoundConfig(1).dropTimerMs, 18000);
+});
 
-  it("taunt hold duration is longest on round 1 and shortest on round 5", () => {
-    // Q2 decision: graduated taunt durations stack a second learning curve
-    expect(ROUND_CONFIGS[0].tauntHoldMs).toBeGreaterThan(ROUND_CONFIGS[1].tauntHoldMs);
-    expect(ROUND_CONFIGS[4].tauntHoldMs).toBeLessThan(ROUND_CONFIGS[3].tauntHoldMs);
-  });
+test("ROUND_CONFIGS: round 5 drop timer is 0.5 seconds", () => {
+  assert.equal(getRoundConfig(5).dropTimerMs, 500);
+});
+
+test("ROUND_CONFIGS: round 5 has a compressed monster walk-in (0.5s)", () => {
+  // Q4 decision: the whole round 5 is compressed, not just the button
+  assert.equal(getRoundConfig(5).monsterWalkInMs, 500);
+});
+
+test("ROUND_CONFIGS: drop timers are strictly decreasing", () => {
+  for (let i = 0; i < ROUND_CONFIGS.length - 1; i++) {
+    assert.ok(
+      ROUND_CONFIGS[i].dropTimerMs > ROUND_CONFIGS[i + 1].dropTimerMs,
+      `round ${i + 1} (${ROUND_CONFIGS[i].dropTimerMs}ms) should be > round ${i + 2} (${ROUND_CONFIGS[i + 1].dropTimerMs}ms)`,
+    );
+  }
+});
+
+test("ROUND_CONFIGS: taunt hold duration is longest on round 1 and shortest on round 5", () => {
+  // Q2 decision: graduated taunt durations stack a second learning curve
+  assert.ok(ROUND_CONFIGS[0].tauntHoldMs > ROUND_CONFIGS[1].tauntHoldMs);
+  assert.ok(ROUND_CONFIGS[4].tauntHoldMs < ROUND_CONFIGS[3].tauntHoldMs);
 });
 ```
 
 - [ ] **Step 2: Run the failing test**
 
-Run: `npx vitest run src/lessons/drop-the-rope/monsters.test.ts`
-Expected: FAIL — "Cannot find module './monsters'".
+Node's test runner understands TypeScript via `--experimental-strip-types` (Node 22+) or via `tsx`. Since this project uses `vite` which handles TS compilation at build time, the simplest approach is to compile the TS files to JS first or use `tsx`:
 
-(If the project doesn't have vitest installed yet, add it: `npm install --save-dev vitest` and ensure `vitest` is in the npm scripts. If the project uses a different test runner for unit tests, adapt accordingly. Check `package.json` first.)
+```bash
+# Option A (Node 22+, zero deps):
+node --experimental-strip-types --test src/lessons/drop-the-rope/monsters.test.ts
+
+# Option B (universal, requires one-time dev-dep install):
+npm install --save-dev tsx
+npx tsx --test src/lessons/drop-the-rope/monsters.test.ts
+```
+
+Check `node --version` first. If >= 22, use option A. Otherwise, option B.
+
+Expected: FAIL — "Cannot find module './monsters.ts'".
 
 - [ ] **Step 3: Write `src/lessons/drop-the-rope/monsters.ts`**
 
@@ -537,8 +567,8 @@ export function getRoundConfig(round: 1 | 2 | 3 | 4 | 5): RoundConfig {
 
 - [ ] **Step 4: Run the test — should pass**
 
-Run: `npx vitest run src/lessons/drop-the-rope/monsters.test.ts`
-Expected: all 8 tests pass.
+Run: `node --experimental-strip-types --test src/lessons/drop-the-rope/monsters.test.ts` (or the `tsx` variant from Step 2).
+Expected: all 10 tests pass.
 
 - [ ] **Step 5: Commit**
 
@@ -656,14 +686,27 @@ git commit -m "feat: drop-the-rope warm dawn background with saturation param"
 
 ---
 
-## Task 6: Write `monsters.ts` drawMonster() function for all 5 silhouettes
+## Task 6: Write `monsters.ts` drawMonster() function — all 5 silhouettes, one at a time
 
 **Files:**
 - Modify: `src/lessons/drop-the-rope/monsters.ts`
 
 Each monster is a silhouette body with one accent color and one defining feature. The spec (§2 roster table) describes each. Implementation is a switch statement that dispatches per monster id.
 
-- [ ] **Step 1: Add drawMonster() to monsters.ts**
+**This task is 5 sub-commits.** Each monster is its own iteration loop: write the draw function, screenshot it, compare to `docs/design-refs/drop-the-rope/lineup-N-*.png`, refine, commit. **Do not skip the visual comparison step** — the first draft of Canvas 2D code rarely matches the intended look, and the Gemini reference is the authoritative target.
+
+**Sub-task pattern (apply for each of the 5 monsters):**
+
+1. Add the `drawX()` helper function to `monsters.ts`
+2. Wire it into the `drawMonster()` switch statement
+3. Add a throw-away viz harness `_viz-monster-X.ts` that draws the single monster onto a 600×360 canvas with the warm dawn background
+4. `npm run dev -- --host 0.0.0.0` and take a Playwright screenshot
+5. Read the screenshot with vision; compare to `docs/design-refs/drop-the-rope/lineup-N-*.png` side-by-side
+6. If it doesn't match: refine the draw function (adjust proportions, colors, features), re-screenshot. Iterate up to 3 times.
+7. Delete the viz harness
+8. Commit with message `feat: drop-the-rope draw<MonsterName> silhouette`
+
+- [ ] **Step 1: First add the dispatcher + options interface to monsters.ts**
 
 Append to `src/lessons/drop-the-rope/monsters.ts`:
 
@@ -894,7 +937,7 @@ for (const id of ids) {
 
 Wire into main.ts temporarily, `npm run dev -- --host 0.0.0.0`, take 5 screenshots (one per canvas element) via a playwright script that iterates over `[data-monster]` elements and screenshots each.
 
-**Verify visually:** each monster matches its corresponding `lineup-N-*.png` reference in `.superpowers/brainstorm/229782-1775934718/content/`. Key checks:
+**Verify visually:** each monster matches its corresponding reference in `docs/design-refs/drop-the-rope/`. Key checks:
 - Anxiety: tall smoke-wisp shape, blue glow from within, pinprick eyes
 - Self-Criticism: squat, one big cyclops eye, jagged teeth
 - Shame: curled ball with wrapped arms, violet peeks through
@@ -927,29 +970,28 @@ git commit -m "feat: drop-the-rope drawMonster for all 5 silhouettes"
 - [ ] **Step 1: Write the failing unit test**
 
 ```typescript
-import { describe, it, expect } from "vitest";
-import { ropeMidpoint } from "./rope";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { ropeMidpoint } from "./rope.ts";
 
-describe("ropeMidpoint", () => {
-  it("balanced tension (0) returns center point", () => {
-    const mid = ropeMidpoint({ x: 0, y: 0 }, { x: 100, y: 0 }, 0);
-    expect(mid.x).toBeCloseTo(50);
-    expect(mid.y).toBeCloseTo(0);
-  });
+test("ropeMidpoint: balanced tension (0) returns center point", () => {
+  const mid = ropeMidpoint({ x: 0, y: 0 }, { x: 100, y: 0 }, 0);
+  assert.ok(Math.abs(mid.x - 50) < 0.01);
+  assert.ok(Math.abs(mid.y - 0) < 0.01);
+});
 
-  it("player-winning tension (-1) bows toward raccoon", () => {
-    const mid = ropeMidpoint({ x: 0, y: 0 }, { x: 100, y: 0 }, -1);
-    expect(mid.x).toBeLessThan(50);
-  });
+test("ropeMidpoint: player-winning tension (-1) bows toward raccoon", () => {
+  const mid = ropeMidpoint({ x: 0, y: 0 }, { x: 100, y: 0 }, -1);
+  assert.ok(mid.x < 50);
+});
 
-  it("monster-winning tension (+1) bows toward monster", () => {
-    const mid = ropeMidpoint({ x: 0, y: 0 }, { x: 100, y: 0 }, 1);
-    expect(mid.x).toBeGreaterThan(50);
-  });
+test("ropeMidpoint: monster-winning tension (+1) bows toward monster", () => {
+  const mid = ropeMidpoint({ x: 0, y: 0 }, { x: 100, y: 0 }, 1);
+  assert.ok(mid.x > 50);
 });
 ```
 
-Run: `npx vitest run src/lessons/drop-the-rope/rope.test.ts` → FAIL.
+Run: `node --experimental-strip-types --test src/lessons/drop-the-rope/rope.test.ts` → FAIL.
 
 - [ ] **Step 2: Write rope.ts**
 
@@ -1012,7 +1054,7 @@ export function drawRope(
 
 - [ ] **Step 3: Run tests — pass**
 
-`npx vitest run src/lessons/drop-the-rope/rope.test.ts` → pass.
+`node --experimental-strip-types --test src/lessons/drop-the-rope/rope.test.ts` → all 3 tests pass.
 
 - [ ] **Step 4: Commit**
 
@@ -1300,62 +1342,143 @@ git commit -m "feat: drop-the-rope taunt bubble with graduated duration support"
 
 This is the heart of the lesson. It's a state machine that runs one round start to finish, and resolves when the valued scene is complete.
 
-- [ ] **Step 1: Write unit tests for pure timing logic**
+- [ ] **Step 1: Write unit tests for pure timing + tension logic**
 
 ```typescript
 // round-loop.test.ts
-import { describe, it, expect } from "vitest";
-import { computeDesaturation, computeExhaustion } from "./round-loop";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  computeDesaturation,
+  computeExhaustion,
+  computeMonsterPull,
+  simulateTension,
+} from "./round-loop.ts";
 
-describe("computeDesaturation", () => {
-  it("is 1.0 (full color) before t=2000ms", () => {
-    expect(computeDesaturation(0, 18000)).toBe(1);
-    expect(computeDesaturation(1999, 18000)).toBe(1);
-  });
-
-  it("fades to 0.15 by t=6000ms", () => {
-    expect(computeDesaturation(6000, 18000)).toBeCloseTo(0.15, 2);
-  });
-
-  it("stays at 0.15 after t=6000ms", () => {
-    expect(computeDesaturation(10000, 18000)).toBeCloseTo(0.15, 2);
-  });
+test("computeDesaturation: is 1.0 (full color) before t=2000ms", () => {
+  assert.equal(computeDesaturation(0, 18000), 1);
+  assert.equal(computeDesaturation(1999, 18000), 1);
 });
 
-describe("computeExhaustion", () => {
-  it("is 0 at t=0", () => { expect(computeExhaustion(0, 18000)).toBe(0); });
-  it("is 1 at t=dropTimer", () => { expect(computeExhaustion(18000, 18000)).toBeCloseTo(1); });
-  it("is monotonic", () => {
-    const a = computeExhaustion(5000, 18000);
-    const b = computeExhaustion(10000, 18000);
-    expect(b).toBeGreaterThan(a);
+test("computeDesaturation: fades to 0.15 by t=6000ms", () => {
+  assert.ok(Math.abs(computeDesaturation(6000, 18000) - 0.15) < 0.01);
+});
+
+test("computeDesaturation: stays at 0.15 after t=6000ms", () => {
+  assert.ok(Math.abs(computeDesaturation(10000, 18000) - 0.15) < 0.01);
+});
+
+test("computeDesaturation: R5's 500ms drop timer completes before greying starts (greying never fires)", () => {
+  // R5 has a 500ms drop timer. Greying starts at 2000ms. By design, R5 never greys.
+  // This is intentional — R5 is too short for greying to matter.
+  assert.equal(computeDesaturation(500, 500), 1);  // still full color at R5's button time
+});
+
+test("computeExhaustion: is 0 at t=0", () => {
+  assert.equal(computeExhaustion(0, 18000), 0);
+});
+
+test("computeExhaustion: is 1 at t=dropTimer", () => {
+  assert.equal(computeExhaustion(18000, 18000), 1);
+});
+
+test("computeExhaustion: is monotonic", () => {
+  assert.ok(computeExhaustion(10000, 18000) > computeExhaustion(5000, 18000));
+});
+
+// ===== Tension math: the "unwinnable" invariant =====
+// These are the most important tests in the file. The spec says the rope
+// "drifts inexorably rightward even when tapping frantically" and the player
+// "cannot win." Two concrete numerical claims follow from this:
+//   (1) tension has a floor (player can bow the rope toward themselves,
+//       but never fully to their side — there's a wall)
+//   (2) the long-term trend is monotonic rightward regardless of tap rate
+
+test("simulateTension: player at 15 taps/sec never reaches the player-win floor of -0.6", () => {
+  // 15 taps/sec is aggressive — faster than most humans can sustain.
+  // The rope should bow toward the player but hit a wall.
+  const result = simulateTension({
+    durationMs: 18000,
+    tapsPerSecond: 15,
+    dropTimerMs: 18000,
   });
+  assert.ok(
+    result.minTension >= -0.6,
+    `player reached tension ${result.minTension.toFixed(3)} — below the -0.6 player-win floor`,
+  );
+});
+
+test("simulateTension: even a superhuman 25 taps/sec can't reach the player-win floor", () => {
+  const result = simulateTension({
+    durationMs: 18000,
+    tapsPerSecond: 25,
+    dropTimerMs: 18000,
+  });
+  assert.ok(result.minTension >= -0.6);
+});
+
+test("simulateTension: tension drifts monotonically rightward — last third > first third (avg)", () => {
+  // The "inexorable" feel of the design. Prove numerically.
+  const result = simulateTension({
+    durationMs: 18000,
+    tapsPerSecond: 15,
+    dropTimerMs: 18000,
+  });
+  const n = result.samples.length;
+  const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+  const avgFirstThird = avg(result.samples.slice(0, Math.floor(n / 3)));
+  const avgLastThird = avg(result.samples.slice(Math.floor((2 * n) / 3)));
+  assert.ok(
+    avgLastThird > avgFirstThird,
+    `avg tension first third=${avgFirstThird.toFixed(3)}, last third=${avgLastThird.toFixed(3)} — should drift rightward`,
+  );
+});
+
+test("simulateTension: finalTension at t=dropTimer is > 0 (monster has the upper hand when the button appears)", () => {
+  const result = simulateTension({
+    durationMs: 18000,
+    tapsPerSecond: 15,
+    dropTimerMs: 18000,
+  });
+  assert.ok(result.finalTension > 0);
+});
+
+test("computeMonsterPull: ramps up over time", () => {
+  // The spec: "its pull strength scales up over time"
+  assert.ok(computeMonsterPull(10000) > computeMonsterPull(0));
+});
+
+test("simulateTension: a player who stops tapping at t=2s converges to the monster's max (+1)", () => {
+  const result = simulateTension({
+    durationMs: 18000,
+    tapsPerSecond: 15,
+    dropTimerMs: 18000,
+    stopTappingAtMs: 2000,
+  });
+  assert.ok(result.finalTension > 0.9);
 });
 ```
 
-Run: FAIL (module not found).
+Run: `node --experimental-strip-types --test src/lessons/drop-the-rope/round-loop.test.ts` → FAIL (module not found).
 
-- [ ] **Step 2: Write round-loop.ts** (partial — only the pure helpers for now)
+- [ ] **Step 2: Write round-loop.ts** (pure helpers only — `runRound()` comes in Task 12)
 
 ```typescript
-import type { RoundConfig, RoundPhase } from "./types";
+import type { RoundConfig } from "./types";
 import type { Character } from "../../characters/Character";
-import { drawWarmDawn } from "./warm-dawn";
-import { drawMonster } from "./monsters";
-import { drawRope, type Point, type RopeState } from "./rope";
-import { getMonster } from "./monsters";
-import { ExhaustionBar } from "./exhaustion-bar";
-import { DropButton } from "./drop-button";
-import { TauntBubble } from "./taunt-bubble";
-import { announce, prefersReducedMotion } from "./a11y";
+import type { ExhaustionBar } from "./exhaustion-bar";
+import type { DropButton } from "./drop-button";
+import type { TauntBubble } from "./taunt-bubble";
+
+// ========= Greying =========
 
 const GREY_AT_COMPLETE = 0.15;
 
-/** Returns a saturation multiplier in [GREY_AT_COMPLETE, 1] for the greying effect */
+/** Returns saturation in [GREY_AT_COMPLETE, 1]. Fades 1 → 0.15 between t=2s and t=6s. */
 export function computeDesaturation(elapsedMs: number, _dropTimerMs: number): number {
   if (elapsedMs < 2000) return 1;
   if (elapsedMs >= 6000) return GREY_AT_COMPLETE;
-  const t = (elapsedMs - 2000) / 4000;  // 0..1 between t=2s and t=6s
+  const t = (elapsedMs - 2000) / 4000;
   return 1 - (1 - GREY_AT_COMPLETE) * t;
 }
 
@@ -1363,6 +1486,92 @@ export function computeDesaturation(elapsedMs: number, _dropTimerMs: number): nu
 export function computeExhaustion(elapsedMs: number, dropTimerMs: number): number {
   return Math.max(0, Math.min(1, elapsedMs / dropTimerMs));
 }
+
+// ========= Tension math (the unwinnable rope) =========
+
+/**
+ * Tension lives in [TENSION_FLOOR, 1]. Negative = raccoon winning, positive = monster winning.
+ * The design is unwinnable: the player can bow the rope toward themselves (negative tension)
+ * but there's a hard floor at -0.6 that represents the "rope hitting its fully-stretched
+ * extent on the raccoon side." Meanwhile the monster's pull ramps up over time so that the
+ * equilibrium drifts monotonically rightward. This is proven numerically in the unit tests.
+ */
+export const TENSION_FLOOR = -0.6;
+export const TENSION_CEIL = 1;
+
+/** Tap impulse — each player tap moves tension this much toward the raccoon. */
+export const TAP_IMPULSE = 0.08;
+
+/**
+ * Monster's per-second pull strength as a function of elapsed ms since struggle start.
+ * Starts at 0.6/sec and ramps to ~1.4/sec over 10 seconds. Plus a rubber-band term
+ * elsewhere that kicks in harder the more negative tension gets.
+ */
+export function computeMonsterPull(elapsedMs: number): number {
+  return 0.6 + Math.min(elapsedMs / 1000, 16) * 0.05;
+}
+
+/** Rubber-band coefficient applied to `-tension` when tension < 0. */
+export const RUBBER_BAND = 2.4;
+
+export interface TensionSimInput {
+  durationMs: number;
+  tapsPerSecond: number;
+  dropTimerMs: number;
+  stopTappingAtMs?: number;
+}
+
+export interface TensionSimResult {
+  minTension: number;
+  maxTension: number;
+  finalTension: number;
+  /** samples every 100ms of tension over the simulation */
+  samples: number[];
+}
+
+/**
+ * Deterministic simulation of the tension mechanic, used both by tests and
+ * by the playtest agent to verify the unwinnability invariant without
+ * running the canvas loop.
+ */
+export function simulateTension(input: TensionSimInput): TensionSimResult {
+  const FPS = 60;
+  const frameMs = 1000 / FPS;
+  const totalFrames = Math.ceil(input.durationMs / frameMs);
+  const tapsPerFrame = input.tapsPerSecond / FPS;
+
+  let tension = 0;
+  let minTension = 0;
+  let maxTension = 0;
+  const samples: number[] = [];
+  const stopAt = input.stopTappingAtMs ?? Infinity;
+
+  for (let f = 0; f < totalFrames; f++) {
+    const elapsedMs = f * frameMs;
+
+    // Player taps (fractional — simulates tapsPerSecond rate)
+    const tapping = elapsedMs < stopAt;
+    if (tapping) {
+      tension -= TAP_IMPULSE * tapsPerFrame;
+    }
+
+    // Monster pull: base + rubber-band when player has pulled negative
+    const basePull = computeMonsterPull(elapsedMs) / FPS;
+    const rubberBand = tension < 0 ? -tension * RUBBER_BAND / FPS : 0;
+    tension += basePull + rubberBand;
+
+    // Clamp to floor/ceiling
+    tension = Math.max(TENSION_FLOOR, Math.min(TENSION_CEIL, tension));
+
+    if (tension < minTension) minTension = tension;
+    if (tension > maxTension) maxTension = tension;
+    if (f % 6 === 0) samples.push(tension);  // sample every 100ms
+  }
+
+  return { minTension, maxTension, finalTension: tension, samples };
+}
+
+// ========= Deps passed into runRound() =========
 
 export interface RoundDeps {
   ctx: CanvasRenderingContext2D;
@@ -1376,13 +1585,19 @@ export interface RoundDeps {
 // Implementation of runRound() follows in Task 12.
 ```
 
-Run tests: PASS.
+- [ ] **Step 3: Run the tests — should pass**
 
-- [ ] **Step 3: Commit the helpers and tests**
+```bash
+node --experimental-strip-types --test src/lessons/drop-the-rope/round-loop.test.ts
+```
+
+Expected: all 11 tests pass. If the tension-math tests fail (e.g., `minTension < -0.6` or `finalTension <= 0`), TUNE the constants at the top of `round-loop.ts` — `TAP_IMPULSE`, `computeMonsterPull` coefficients, `RUBBER_BAND` — until the invariants hold. Do NOT relax the tests. The tests ARE the spec.
+
+- [ ] **Step 4: Commit the helpers and tests**
 
 ```bash
 git add src/lessons/drop-the-rope/round-loop.ts src/lessons/drop-the-rope/round-loop.test.ts
-git commit -m "feat: drop-the-rope round-loop pure helpers with tests"
+git commit -m "feat: drop-the-rope round-loop helpers with unwinnable tension math"
 ```
 
 ---
@@ -1392,81 +1607,83 @@ git commit -m "feat: drop-the-rope round-loop pure helpers with tests"
 **Files:**
 - Modify: `src/lessons/drop-the-rope/round-loop.ts`
 
-- [ ] **Step 1: Add runRound()**
+- [ ] **Step 1: Add runRound() — struggle loop uses the tested tension math**
 
-Append to `round-loop.ts`:
+Append to `round-loop.ts`. IMPORTANT: the struggle loop uses `TAP_IMPULSE`, `computeMonsterPull`, `RUBBER_BAND`, `TENSION_FLOOR`, and `TENSION_CEIL` — the constants that are proven unwinnable by the Task 11 tests. Do NOT inline magic numbers here.
 
 ```typescript
-/** Run one full round. Resolves when the raccoon has been in the valued scene for ~4s. */
+import type { MonsterId } from "./types";
+import { drawWarmDawn } from "./warm-dawn";
+import { drawMonster, getMonster } from "./monsters";
+import { drawRope, type Point, type RopeState } from "./rope";
+import { announce, prefersReducedMotion } from "./a11y";
+
+/** Run one full round. Resolves when the valued scene finishes. */
 export async function runRound(
   config: RoundConfig,
   roundNum: 1 | 2 | 3 | 4 | 5,
   deps: RoundDeps,
-  onPhaseChange?: (phase: RoundPhase) => void,
 ): Promise<void> {
   const { ctx, canvas, character, exhaustionBar, dropButton, tauntBubble } = deps;
   const w = canvas.width / (window.devicePixelRatio || 1);
   const h = canvas.height / (window.devicePixelRatio || 1);
 
   // ===== ARRIVING =====
-  onPhaseChange?.("arriving");
   announce(`${getMonster(config.monster).displayName} approaches`);
   character.setExpression("neutral");
   character.setPosition(w * 0.3, h * 0.6);
+  await animateArrival(deps, config, w, h, performance.now());
 
-  // Render arrival: warm dawn bg with monster walking in
-  const arrivalStart = performance.now();
-  await animateArrival(deps, config, w, h, arrivalStart);
-
-  // ===== TAUNT =====
-  if (config.tauntHoldMs > 0 && roundNum !== 5) {
-    tauntBubble.show(getMonster(config.monster).taunt, config.tauntHoldMs, config.tauntFadeMs);
-    // Don't await — taunt plays in parallel with the struggle starting
-  } else if (roundNum === 5) {
-    // R5: taunt begins but player will drop first
-    tauntBubble.show(getMonster(config.monster).taunt, 0, config.tauntFadeMs);
-  }
+  // ===== TAUNT (non-blocking — plays concurrently with struggle) =====
+  // Q2: graduated duration. For R5 the struggle's drop-button fires before the taunt
+  // finishes fading in (tauntBubble.cancel() is called in the teardown).
+  void tauntBubble.show(getMonster(config.monster).taunt, config.tauntHoldMs, config.tauntFadeMs);
 
   // ===== STRUGGLING + BUTTON VISIBLE =====
-  onPhaseChange?.("struggling");
   character.setExpression("stressed");
   const struggleStart = performance.now();
-  let playerTension = 0;
+  const reduced = prefersReducedMotion();
+  let tension = 0;
   let tapCount = 0;
-  let flashFrame = false;
+  let flashUntil = 0;
 
   const onTap = () => {
     tapCount++;
-    playerTension = Math.max(-1, playerTension - 0.08);
-    flashFrame = true;
-    setTimeout(() => { flashFrame = false; }, 50);
+    tension = Math.max(TENSION_FLOOR, tension - TAP_IMPULSE);
+    flashUntil = performance.now() + 50;
   };
   canvas.addEventListener("click", onTap);
   canvas.addEventListener("touchstart", onTap, { passive: true });
-  const onKey = (e: KeyboardEvent) => { if (e.code === "Space") { e.preventDefault(); onTap(); } };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.code === "Space") { e.preventDefault(); onTap(); }
+  };
   window.addEventListener("keydown", onKey);
 
   let dropButtonShown = false;
   let dropped = false;
   dropButton.onClick(() => { dropped = true; });
 
-  // Main loop
+  const FPS = 60;
   await new Promise<void>((resolve) => {
     const loop = () => {
-      const elapsed = performance.now() - struggleStart;
+      const now = performance.now();
+      const elapsed = now - struggleStart;
 
-      // Monster pull decays player tension
-      playerTension = Math.min(1, playerTension + (0.6 / 60));
+      // Monster pulls per frame: base + rubber band if player has dipped negative.
+      // Matches the simulateTension() math proven unwinnable by Task 11's tests.
+      const basePull = computeMonsterPull(elapsed) / FPS;
+      const rubberBand = tension < 0 ? -tension * RUBBER_BAND / FPS : 0;
+      tension = Math.min(TENSION_CEIL, tension + basePull + rubberBand);
 
       // Exhaustion bar
       exhaustionBar.setLevel(computeExhaustion(elapsed, config.dropTimerMs));
 
-      // Update raccoon expression based on progress
+      // Raccoon expression transitions
       if (elapsed > 2000 && character.getExpression() !== "desperate") {
         character.setExpression("desperate");
       }
 
-      // Render frame
+      // Render background + monster + rope
       const saturation = computeDesaturation(elapsed, config.dropTimerMs);
       ctx.clearRect(0, 0, w, h);
       drawWarmDawn(ctx, w, h, saturation);
@@ -1475,32 +1692,24 @@ export async function runRound(
       const monsterY = h * 0.55;
       drawMonster(ctx, config.monster, {
         cx: monsterX, cy: monsterY, height: 180,
-        breathPhase: (elapsed / 500) % 1,
-        pullLean: playerTension,
+        breathPhase: reduced ? 0 : (elapsed / 500) % 1,  // Q10: respect reduced motion
+        pullLean: tension,
       });
 
       const ropeFrom: Point = { x: w * 0.3 + 20, y: h * 0.6 };
       const ropeTo: Point = { x: monsterX - 30, y: monsterY + 10 };
-      drawRope(ctx, ropeFrom, ropeTo, playerTension, "taut", flashFrame);
+      drawRope(ctx, ropeFrom, ropeTo, tension, "taut", now < flashUntil);
 
-      // Q9: Round 1 only, at t≈4000ms, tension flash + snap back
+      // Q9: Round 1 only, at t≈4000ms, "max tension" flash + snap-back
+      // Triggers if the player has tapped aggressively (>TAPS_BEFORE_SNAPBACK)
       if (roundNum === 1 && elapsed >= 4000 && elapsed < 4200 && tapCount > 10) {
-        // Redraw rope in near-white with a small vibrate — snap back visually
-        ctx.save();
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 6;
-        ctx.beginPath();
-        ctx.moveTo(ropeFrom.x, ropeFrom.y + (Math.random() - 0.5) * 6);
-        ctx.lineTo(ropeTo.x,   ropeTo.y   + (Math.random() - 0.5) * 6);
-        ctx.stroke();
-        ctx.restore();
+        drawMaxTensionSnapBack(ctx, ropeFrom, ropeTo);
       }
 
-      // Show drop button
+      // Reveal drop button
       if (!dropButtonShown && elapsed >= config.dropTimerMs) {
         dropButtonShown = true;
-        onPhaseChange?.("buttonVisible");
-        dropButton.fadeIn();  // intentionally don't await
+        void dropButton.fadeIn();  // non-blocking
       }
 
       if (dropped) { resolve(); return; }
@@ -1509,28 +1718,41 @@ export async function runRound(
     loop();
   });
 
-  // Teardown struggle listeners
+  // Teardown
   canvas.removeEventListener("click", onTap);
   canvas.removeEventListener("touchstart", onTap);
   window.removeEventListener("keydown", onKey);
   tauntBubble.cancel();
 
   // ===== DROPPING =====
-  onPhaseChange?.("dropping");
   character.setExpression("tired");
   await animateDrop(deps, config, w, h);
 
-  // ===== WALKING =====
-  onPhaseChange?.("walking");
+  // ===== WALKING — desaturation lifts DURING the walk, not after =====
   character.setExpression("neutral");
   dropButton.hide();
-  await character.walkTo(w * 0.85, h * 0.65, prefersReducedMotion() ? 0 : 2500);
-  await fadeDesaturationBack(deps, w, h, config);
+  const walkDuration = reduced ? 0 : 2500;
+  // Run walkTo and the desaturation fade in parallel so they finish together.
+  const walkPromise = character.walkTo(w * 0.85, h * 0.65, walkDuration);
+  const satPromise = fadeDesaturationBack(deps, config, w, h, walkDuration);
+  await Promise.all([walkPromise, satPromise]);
 
   // ===== VALUED =====
-  onPhaseChange?.("valued");
   announce(`You walked into the ${config.captionText} scene`);
   await showValuedScene(deps, config, roundNum, w, h);
+}
+
+function drawMaxTensionSnapBack(
+  ctx: CanvasRenderingContext2D, from: Point, to: Point,
+): void {
+  ctx.save();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y + (Math.random() - 0.5) * 6);
+  ctx.lineTo(to.x,   to.y   + (Math.random() - 0.5) * 6);
+  ctx.stroke();
+  ctx.restore();
 }
 
 // Helper animations — leave as stubs to be filled in, OR inline the following
@@ -1582,12 +1804,26 @@ async function animateDrop(
   });
 }
 
+/**
+ * Eases the world back from the struggle's dimmed saturation (0.15) to full
+ * color over `duration` ms, keeping the monster still pulling at empty air
+ * (per spec: "still there, still roaring, still pulling on a slack line").
+ * `duration` matches the raccoon's walk-past duration so they finish together.
+ */
 async function fadeDesaturationBack(
-  deps: RoundDeps, w: number, h: number, config: RoundConfig,
+  deps: RoundDeps, config: RoundConfig, w: number, h: number, duration: number,
 ): Promise<void> {
   const { ctx } = deps;
+  if (duration === 0) {
+    // prefers-reduced-motion: snap straight to full color, draw once
+    ctx.clearRect(0, 0, w, h);
+    drawWarmDawn(ctx, w, h, 1);
+    drawMonster(ctx, config.monster, {
+      cx: w * 0.75, cy: h * 0.55, height: 180, breathPhase: 0, pullLean: 0.2,
+    });
+    return;
+  }
   const start = performance.now();
-  const duration = 1500;
   return new Promise((resolve) => {
     const loop = () => {
       const elapsed = performance.now() - start;
@@ -1595,7 +1831,6 @@ async function fadeDesaturationBack(
       const sat = 0.15 + (1 - 0.15) * t;
       ctx.clearRect(0, 0, w, h);
       drawWarmDawn(ctx, w, h, sat);
-      // Keep monster in frame (still roaring at empty rope)
       drawMonster(ctx, config.monster, {
         cx: w * 0.75, cy: h * 0.55, height: 180,
         breathPhase: (elapsed / 500) % 1, pullLean: 0.2,
@@ -1727,52 +1962,90 @@ git commit -m "feat: valued scene 1 — coffee at home"
 
 ---
 
-## Task 14: Valued scene 2 — kettlebell swing (reuse gym.ts)
+## Task 14: Valued scene 2 — kettlebell swing (new warm gym scene)
 
 **Files:**
 - Modify: `src/lessons/drop-the-rope/valued-scenes.ts`
 
-- [ ] **Step 1: Add drawValuedGym**
+**Correction from initial plan draft:** `src/scenes/gym.ts` uses cool concrete colors (`#3a3a3e` walls, `#2a2a2e` floor) which do NOT fit the warm dawn palette. Reusing it wholesale would break the palette continuity that the lesson's transition-out-of-greyness mechanic relies on. Instead, draw a small warm wooden gym inline in `valued-scenes.ts`. Match the visual target `docs/design-refs/drop-the-rope/valued-2-gym.png`.
+
+- [ ] **Step 1: Add drawValuedGym (new warm gym, not a reuse)**
 
 ```typescript
-import { drawGymScene } from "../../scenes/gym";
-
 export function drawValuedGym(ctx: ValuedSceneContext): void {
   const { ctx: c, w, h, t } = ctx;
-  // Reuse existing gym scene — it's already warm-palette-adjacent
-  drawGymScene(c, w, h, 0.4);  // skyPhase 0.4 = warm daytime
 
-  // Kettlebell swing animation overlay: a single swing over ~2s
+  // Warm wooden wall (rust-red, not concrete grey)
+  const wallGrad = c.createLinearGradient(0, 0, 0, h * 0.72);
+  wallGrad.addColorStop(0, "#5a3a4a");
+  wallGrad.addColorStop(1, "#6a4a3a");
+  c.fillStyle = wallGrad;
+  c.fillRect(0, 0, w, h * 0.72);
+
+  // Wooden plank floor
+  const floorGrad = c.createLinearGradient(0, h * 0.72, 0, h);
+  floorGrad.addColorStop(0, "#5a3a1a");
+  floorGrad.addColorStop(1, "#3a2a1a");
+  c.fillStyle = floorGrad;
+  c.fillRect(0, h * 0.72, w, h * 0.28);
+  // Plank lines
+  c.strokeStyle = "#2a1a0a";
+  c.lineWidth = 1;
+  for (let px = 0; px < w; px += 40) {
+    c.beginPath(); c.moveTo(px, h * 0.72); c.lineTo(px, h); c.stroke();
+  }
+
+  // Window on the left with warm daylight
+  const winX = w * 0.05, winY = h * 0.12, winW = w * 0.2, winH = h * 0.35;
+  const winGrad = c.createLinearGradient(winX, winY, winX, winY + winH);
+  winGrad.addColorStop(0, "#f0c060");
+  winGrad.addColorStop(1, "#ffe890");
+  c.fillStyle = winGrad;
+  c.fillRect(winX, winY, winW, winH);
+  c.strokeStyle = "#4a3a2a";
+  c.lineWidth = 4;
+  c.strokeRect(winX, winY, winW, winH);
+
+  // Kettlebell rack on the right (3 kettlebells of ascending size)
+  const rackX = w * 0.78, rackY = h * 0.6;
+  c.fillStyle = "#5a3a1a";
+  c.fillRect(rackX - 10, rackY + 40, 120, 6);  // rack shelf
+  const bellSizes = [12, 15, 18];
+  for (let i = 0; i < 3; i++) {
+    const bx = rackX + i * 40;
+    const by = rackY + 40 - bellSizes[i];
+    c.fillStyle = "#3a3a3a";
+    c.beginPath(); c.arc(bx, by, bellSizes[i], 0, Math.PI * 2); c.fill();
+    c.strokeStyle = "#2a2a2a"; c.lineWidth = 3;
+    c.beginPath(); c.arc(bx, by - bellSizes[i] - 2, bellSizes[i] * 0.5, Math.PI, 0); c.stroke();
+  }
+
+  // Active kettlebell in the raccoon's paws — one clean swing over ~2s
   const swingT = Math.min(1, t / 2000);
   const swingAngle = Math.sin(swingT * Math.PI) * 0.9;
-  // The raccoon is positioned separately — here we just draw a kettlebell in its paws
-  // Kettlebell follows an arc from in-front to extended
   const bellX = w * 0.5 + Math.sin(swingAngle) * 60;
   const bellY = h * 0.68 - Math.cos(swingAngle) * 20;
   c.fillStyle = "#3a3a3a";
-  c.beginPath();
-  c.arc(bellX, bellY, 18, 0, Math.PI * 2);
-  c.fill();
-  c.strokeStyle = "#2a2a2a";
-  c.lineWidth = 4;
-  c.beginPath();
-  c.arc(bellX, bellY - 20, 8, Math.PI, 0);
-  c.stroke();
-  // Weight label
+  c.beginPath(); c.arc(bellX, bellY, 18, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = "#2a2a2a"; c.lineWidth = 4;
+  c.beginPath(); c.arc(bellX, bellY - 20, 8, Math.PI, 0); c.stroke();
+  // Weight label per spec
   c.fillStyle = "#ffffff";
-  c.font = "10px sans-serif";
+  c.font = "bold 10px sans-serif";
   c.textAlign = "center";
   c.fillText("16kg", bellX, bellY + 3);
 }
 ```
 
-Note: the existing `drawGymScene` signature is `(ctx, w, h, skyPhase)` — verify by checking `src/scenes/gym.ts` before committing; adjust if different.
+- [ ] **Step 2: Screenshot verify against reference**
 
-- [ ] **Step 2: Commit**
+Follow the same throw-away harness approach used in Task 5 / Task 6 for visual verification. Compare side-by-side with `docs/design-refs/drop-the-rope/valued-2-gym.png`. The target: warm wood palette, kettlebell rack visible, active kettlebell mid-swing with the raccoon. Tune until the palette matches.
+
+- [ ] **Step 3: Commit**
 
 ```bash
 git add src/lessons/drop-the-rope/valued-scenes.ts
-git commit -m "feat: valued scene 2 — kettlebell swing (reuses gym.ts)"
+git commit -m "feat: valued scene 2 — warm wooden gym with kettlebell swing"
 ```
 
 ---
@@ -2684,5 +2957,38 @@ Checklist run against the spec:
 - **Gap:** Q7 audio pass is explicitly deferred to a follow-up, not dropped. Design doc §10 Q7 already says "add audio in a second pass" — this plan honors that by not implementing audio but making sure nothing depends on it.
 
 Self-review passes.
+
+---
+
+## Review audit (post-v1)
+
+This plan was reviewed after the first draft. Four critical bugs and several structural issues were caught and fixed:
+
+1. **Unit test framework mismatch (fixed).** v1 imported `vitest` in tasks 4, 7, 11 — not a dependency of this project, which uses Playwright E2E only. All unit tests now use Node's built-in `node --test` runner via `--experimental-strip-types` (Node 22+) or `tsx` (universal fallback). Zero new dependencies.
+
+2. **`gym.ts` palette mismatch (fixed).** v1 said Task 14 would "reuse `gym.ts` directly — it's already warm-palette-adjacent." Checking the source revealed cool concrete colors (`#3a3a3e` walls, `#2a2a2e` floor) — completely wrong for the warm dawn world. Task 14 now draws a small warm wooden gym inline in `valued-scenes.ts`, matching the `valued-2-gym.png` reference.
+
+3. **Rope tension math allowed the player to win (fixed).** v1 used `playerTension -= 0.08` per tap and `+= 0.6/60` per frame — at 15 taps/sec that's −1.2/sec player vs +0.6/sec monster = player wins. The whole lesson is supposed to be unwinnable. Fixed by introducing `TAP_IMPULSE`, `computeMonsterPull` (ramping), `RUBBER_BAND`, `TENSION_FLOOR`, and a `simulateTension()` function that is tested numerically in Task 11 — the tests prove `minTension >= -0.6` at 15 AND 25 taps/sec, monotonic rightward drift, and `finalTension > 0` when the drop button appears.
+
+4. **Ephemeral image references (fixed).** v1 referenced `.superpowers/brainstorm/229782-1775934718/content/lineup-N-*.png` — that directory is the brainstorm companion session dir, which is cleaned up when sessions expire. Fixed by copying the 11 reference images to `docs/design-refs/drop-the-rope/` (committed) and updating all plan references. Images are now permanent.
+
+**Structural improvements from the audit:**
+
+5. **Task 6 (5 monsters in one commit) now specifies a sub-commit-per-monster iteration pattern** with screenshot-compare-refine loops against the design refs. Each monster gets its own visual verification cycle before moving to the next.
+
+6. **Task 12 struggle loop now uses the tested constants** from Task 11 (`TAP_IMPULSE`, `computeMonsterPull`, `RUBBER_BAND`, `TENSION_FLOOR`) instead of inlined magic numbers. This means if the tension math is correct in the unit tests, it is correct in the runtime — no divergence possible.
+
+7. **Desaturation lift now runs DURING the walk-past, not after** (Task 12). The new `fadeDesaturationBack(duration)` takes the walk duration as a parameter and they run in parallel via `Promise.all`. Also handles `prefers-reduced-motion` by snapping instead of animating.
+
+8. **`prefers-reduced-motion` now suppresses the breath pulse in the struggle loop** (via `reduced ? 0 : (elapsed / 500) % 1`) in addition to the walk animation. Q10 compliance is broader than v1.
+
+9. **Round 5 taunt handling is now uniform** — `tauntBubble.show(...)` is called once with R5's `tauntHoldMs: 0` config, and the taunt is simply canceled by the teardown when the player drops. No special-case branch on `roundNum === 5`.
+
+10. **R5 greying edge case is now documented and tested** — `computeDesaturation` doesn't fade before t=2s, and R5's drop timer fires at t=500ms, so R5 never greys. This is intentional (R5 is too compressed for greying to matter) and the Task 11 test suite has an explicit test for it.
+
+Remaining known limitations (intentionally not addressed in this plan):
+- **Audio is deferred (Q7).** The plan produces a silent lesson; an audio pass is a separate follow-up.
+- **Task 12 is still a large task** — could be split into arrival / struggle / drop+walk / valued sub-tasks, but the current structure is manageable and the extracted helpers keep each phase readable.
+- **Playtest agent task (Task 24) is still a manual research step** — no mechanical gate. The implementer is trusted to actually run it.
 
 ---
