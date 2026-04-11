@@ -15,6 +15,9 @@ const PAL = {
   tailDark: "#2C2420",
   tailLight: "#8B8680",
   whisker: "#D4CCC4",
+  // Mismatched Crocs: left foot blue, right foot yellow — canonical raccoon style.
+  crocLeft: "#3B82F6",
+  crocRight: "#FDE047",
 };
 
 // Blush colors for happy / energized
@@ -123,7 +126,7 @@ export function drawRaccoon(
     ctx.fill();
   }
 
-  // Feet
+  // Feet: mismatched Crocs — left blue, right yellow
   for (const side of [-1, 1]) {
     ctx.beginPath();
     ctx.ellipse(
@@ -135,7 +138,7 @@ export function drawRaccoon(
       0,
       Math.PI * 2,
     );
-    ctx.fillStyle = PAL.mask;
+    ctx.fillStyle = side === -1 ? PAL.crocLeft : PAL.crocRight;
     ctx.fill();
   }
 
