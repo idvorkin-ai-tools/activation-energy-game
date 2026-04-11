@@ -10,6 +10,18 @@
 
 Visual references from the brainstorm session are in `.superpowers/brainstorm/229782-1775934718/content/` (see `monster-a2-warm.png`, `lineup-1-anxiety.png` through `lineup-5-anger.png`, and `valued-1-coffee.png` through `valued-5-dog.png`).
 
+**Revision 3 — 2026-04-11 (Q2-Q11 walkthrough):** Remaining open questions resolved in a text-based brainstorm pass. Summary:
+- **Q2 taunts** → graduated duration (R1: 3s, R2-R4: 1.5s, R5: interrupted). Taunt duration shrinks alongside drop-timer — second embodied learning curve stacked on the first.
+- **Q3 round-1 drop timer** → ship 18s as placeholder; gated by a playtest-agent run on round 1 before PR. Criterion: "does the button appearing feel like relief, or like surrender?"
+- **Q4 round-5 drop timer** → 0.5s button timing PLUS compressed monster walk-in (0.5s instead of the usual 1.5s). Entire round 5 feels like one gesture.
+- **Q5 captions** → kept as spec (coffee / a swing / a friend / a page / her); timing shifted to 2s after arrival so the word confirms the feeling rather than announcing it.
+- **Q6 URL** → `drop-the-rope` (player verb).
+- **Q7 sound** → visual-first; audio pass deferred but *the roar continuing during the walk-past* flagged as the critical beat of the audio pass.
+- **Q8 cross-lesson link** → no inline link; hub and About modal only.
+- **Q9 unwinnable + tension-spike flash** → Round 1 only, at ~4s of frantic tapping: rope briefly hits visual max-tension (brightens + 1 cycle vibrate), then SNAPS BACK. Snap-back is the key — embodied evidence that effort isn't the lever.
+- **Q10 a11y** → expanded to a full checklist: aria-live announcements for monster arrival, taunt text, button availability, valued-scene arrival; `prefers-reduced-motion` skips animations; keyboard: space = pull, enter = drop.
+- **Q11 mismatched Crocs** → prerequisite PR. Update `drawRaccoon` first (left blue `#3B82F6`, right yellow `#FDE047`), THEN build the lesson. Keeps this PR focused.
+
 ---
 
 ## 1. Concept and framing
@@ -43,7 +55,17 @@ Palette: each monster gets one saturated cool accent against a near-black body, 
 
 **Round 1 = Anxiety, deliberately.** Harris's framing throughout the book (`act.md:180`) puts anxiety first because it's the feeling everyone in his target audience has already lost to, repeatedly, before they walked in the door. Starting with Anxiety means the player arrives primed — they already know what the struggle feels like — and the first drop lands with the weight of recognition, not novelty. The other monsters are then demonstrations that *this same move* works on things that feel categorically different.
 
-**Taunts: shown, not spoken.** A soft-drawn speech bubble fades up over the monster for ~2 seconds at round start, then fades. No voiceover. The taunt is the monster's thesis, delivered once, and then the monster just roars the rest of the round.
+**Taunts: shown, not spoken, with graduated duration.** A soft-drawn speech bubble fades up over the monster at round start, holds, then fades. No voiceover. The taunt is the monster's thesis, delivered once, and then the monster just roars the rest of the round. **Duration per round shrinks alongside the drop-timer** — this is a second embodied learning curve stacked on the first:
+
+| Round | Taunt duration | Why |
+|---|---|---|
+| 1 (Anxiety) | **3.0s** — hold 2s, fade 1s | Player is learning the convention. The word needs to land. |
+| 2 (Self-Criticism) | **1.5s** — hold 0.8s, fade 0.7s | The pattern is known. Half the time. |
+| 3 (Shame) | **1.5s** | Same as R2. |
+| 4 (Doubt) | **1.5s** | Same. |
+| 5 (Anger) | **~0.3s truncated** — the taunt begins fading in, but the player drops the rope before it completes. The bubble never fully appears. | The punchline. Like the drop timer, the taunt is interrupted by the player's reflex. |
+
+The taunt-duration curve is not the same as the drop-timer curve (which shrinks more aggressively — 18s → 10s → 6s → 3s → 0.5s) because the taunt is the monster *introducing itself*, not the struggle. You want rounds 2-4 to still show the taunt clearly so the player reads each monster as a distinct feeling. Round 5 is where both curves collapse together for the joke.
 
 **Family resemblance.** All five share the same silhouette-on-warm-dawn style, same eye rendering language, same breath puff when roaring. The body shape and one defining feature (cyclops eye, wrapped arms, two heads, horns-and-fists, smoke-wisp tapered top) is the only thing that moves between them, alongside the accent color. This is deliberate: they should feel like siblings in a catalog. That's what makes the gallery ending work.
 
@@ -107,14 +129,14 @@ Each round ends in a different valued scene. They are short — the raccoon walk
 
 **Why these, not others:** they span body (gym), relationships (texts, dog), craft (writing), and basic sensory pleasure (coffee). This matters because ACT's values are never singular (`act.md:245`). The game should make the player feel that "things that matter" is plural, not one goal in the future.
 
-**Captions.** A single caption fades in at the bottom of each valued scene, one second after the raccoon arrives. Recommended set:
+**Captions.** A single caption fades in at the bottom of each valued scene, **two seconds after the raccoon arrives** (not one — the word should confirm the feeling, not announce it). The set, locked in Q5:
 - Round 1: *coffee*
 - Round 2: *a swing*
 - Round 3: *a friend*
 - Round 4: *a page*
 - Round 5: *her*
 
-One-word captions, lowercase. These are tonal — direct, undramatic, trusting the player. Glow-inspired (`src/lessons/glow/main.ts`). They can be cut if playtest shows they're redundant; see §10.
+One-word captions, lowercase. These are tonal — direct, undramatic, trusting the player. Glow-inspired (`src/lessons/glow/main.ts`). **Not labels — tonal accents**, doing the same work glow's captions do: naming the feeling quietly so it can land. "her" is deliberate for round 5: specificity is the warmth. The dog is somebody, not some dog.
 
 ---
 
@@ -170,7 +192,7 @@ One-word captions, lowercase. These are tonal — direct, undramatic, trusting t
 | 2 | **10s** | Player has seen the move once. Half the time. |
 | 3 | **6s** | Muscle memory kicks in — this is the round where most players will start looking for the button on their own, before it appears. |
 | 4 | **3s** | The button appears almost immediately on arrival. |
-| 5 | **0.5s** | The button is there as the monster walks on. The player drops before the taunt bubble finishes fading in. This is the punchline. |
+| 5 | **0.5s** + **compressed monster walk-in (0.5s vs usual 1.5s)** | The button fades in 0.5s into the round, AND the monster's walk-in is also shortened to 0.5s. The entire round 5 encounter is compressed, not just the button timing. Feels like "monster-button-drop" as a single gesture. The player drops before the taunt bubble finishes fading in. This is the punchline. |
 
 **Total playtime target: 4–5 minutes.** Breakdown:
 
@@ -300,25 +322,31 @@ src/lessons/drop-the-rope/
 
 1. ~~**How cartoony vs. how serious should the monsters be?**~~ **LOCKED (2026-04-11 visual brainstorm):** silhouette-serious monsters on a WARM DAWN EARTH world (variant A2), not the original muted grey plain. Confirmed via Gemini previews of all 5 monsters against the warm palette. The cold-accent-on-warm-background contrast reads as "this feeling doesn't belong in your morning" — closer to ACT's framing than "bleak world with brief reprieves." See revision 2 note at the top of this doc.
 
-2. **Are the taunts shown at all, or just implied?** I've drafted them to show once as a fading speech bubble at round start. Alternative: don't show them anywhere, ever, and let the visual be the whole thesis. **My pick: show them, but only briefly — 2-second fade, then gone.** Round 1's Anxiety taunt especially earns its place because it names the feeling the player is about to fight. Flag to confirm.
+2. ~~**Are the taunts shown at all, or just implied?**~~ **LOCKED (rev 3):** shown, with graduated duration per round (see §2 Taunts table). Round 1 gets 3s to establish the convention; rounds 2-4 get 1.5s; round 5 begins fading in but is interrupted by the player's reflexive drop. The shrinking taunt duration is a second embodied learning curve stacked on the drop-timer curve.
 
-3. **Should the drop-timer in round 1 be 18s?** This is the single highest-leverage number in the whole design. Too short and the player never feels stuck. Too long and they feel punished. 18 seconds is my best guess but it's a guess. **This needs playtest before shipping.** Recommend the playtest agent critic pattern (`CLAUDE.md` → Playtest agent).
+3. ~~**Should the drop-timer in round 1 be 18s?**~~ **LOCKED (rev 3):** ship 18s as placeholder. **Gated by a playtest-agent run on round 1 before the lesson's PR can merge.** The playtest prompt must include this specific criterion: *"At t=18s when the drop button first appears, what does the raccoon's face mean? Relief, surrender, or confusion? Which of those did the player just feel?"* Relief is the signal we got the number right. Adjust up/down based on the playtest critic report.
 
-4. **Does round 5 actually let the player drop in 0.5s, or is 0.5s too absurd and we need 1.5s?** The absurdity is the joke — the game is telling you "yes, you get it, this is reflexive now." But it might read as broken rather than as payoff. **My pick: keep 0.5s.** Flag for playtest.
+4. ~~**Does round 5 actually let the player drop in 0.5s?**~~ **LOCKED (rev 3):** yes, 0.5s — AND the monster's walk-in animation for round 5 is also shortened from the usual 1.5s to 0.5s. The entire round 5 is visually accelerated, not just the button timing. Feels like "monster-button-drop" as a single gesture. See §7 table.
 
-5. **Captions under the valued scenes — keep or cut?** I've drafted one-word captions in the glow style. They may be unnecessary if the visuals are strong enough. **My pick: ship with them, cut if playtest says they're redundant.**
+5. ~~**Captions under the valued scenes — keep or cut?**~~ **LOCKED (rev 3):** keep all 5 exactly as spec (coffee / a swing / a friend / a page / her). But shift timing from 1s to **2s after arrival** — the word confirms the feeling rather than announcing it. "her" stays — specificity is the warmth. See §5 Captions.
 
-6. **The URL: `drop-the-rope` vs `monster-gallery` vs something else?** I've picked `drop-the-rope`. See §9 rationale. Flag to confirm.
+6. ~~**The URL: `drop-the-rope` vs `monster-gallery`?**~~ **LOCKED (rev 3):** `/lessons/drop-the-rope/`. The player verb wins over the scene description. The slug is what someone types when they want to DO the thing.
 
-7. **Sound.** The lesson works silently. But there is a specific moment — the roar continuing after the drop — where *any* audio at all would make the acceptance insight land harder. One ambient "monster still roaring, distant" sound during the walk-past. **My pick: design and build the visuals first, add audio in a second pass once the rhythm is locked.**
+7. ~~**Sound.**~~ **LOCKED (rev 3):** build visuals first, audio as a second pass — but the second pass has a specific critical beat that the rest of the audio is supporting: **the monster's roar continuing audibly during the raccoon's walk-past, after the drop.** That's the acceptance insight made audible — the monster is still there, still roaring, you're just not holding the rope. Other beats to budget for the audio pass: ambient wind on the warm plain; rope creaking/straining during the struggle; one diegetic sound per valued scene (coffee pour, kettlebell clunk, phone chime, pen scratch, dog tail thump on hardwood).
 
-8. **Can this lesson link forward to the Choice Point lesson (the parallel one being designed)?** I've argued against adding a next-lesson link inline (§8). But a tasteful "if this resonated, try the Choice Point lesson" link on the *hub* card or in the About modal would be fine. **My pick: no inline link; let the hub do the linking.** Flag for user to decide once both lessons exist.
+8. ~~**Can this lesson link forward to the Choice Point lesson?**~~ **LOCKED (rev 3):** no inline link on the ending — that would break the quiet "credits of a short film" tone. Cross-linking happens on the hub card and in the About modal only. Revisit when both lessons ship.
 
-9. **Does the player ever win a tug-of-war?** The current design: no, never. Even if they tap at superhuman speed, the monster's pull strength always exceeds their best. **This is the whole point.** But some players will interpret "unwinnable" as "broken." A single round-1 visual touch — for example, the rope refusing to move even when the player is clearly mashing — might telegraph intent. **My pick: keep unwinnable; add a subtle "tension maxed out" visual flash after ~4 seconds of frantic tapping in round 1 only, signaling that effort isn't the variable.**
+9. ~~**Does the player ever win a tug-of-war?**~~ **LOCKED (rev 3):** no, never — and Round 1 gets a specific visual touch to telegraph that effort isn't the variable. **At ~4s of frantic tapping** (round 1 only), the rope briefly hits a visual "max tension" state (brightens to near-white, vibrates through one full cycle) and then **SNAPS BACK** to where it was. The snap-back is the key — "you poured effort in, the rope didn't move." Embodied evidence that tapping harder isn't the lever. Once per lesson; does not repeat in later rounds.
 
-10. **Accessibility.** Tap-to-pull doesn't require precise input, which is good. But the "drop the rope" button has no visual emphasis by design, and a screen-reader user would not hear "a button has faded in at the bottom of the screen." **Flag:** we need at least an `aria-live` announcement ("Drop the rope button is now available.") when the button becomes clickable, even though the visual deliberately downplays it. This is worth thinking through with the user.
+10. ~~**Accessibility.**~~ **LOCKED (rev 3):** expanded from the original single-point concern into a full a11y checklist. Implementation must include:
+    - `aria-live="polite"` region that announces **monster arrival** at round start ("Anxiety monster approaches")
+    - Same region reads the **taunt text** aloud as the bubble fades in (so screen-reader users get the thesis even as the visual fades)
+    - Same region announces **button availability** ("Drop the rope button is now available") when the button fades in, even though the visual deliberately downplays it
+    - Same region announces **valued-scene arrival** ("You walked into the morning coffee scene") after each drop
+    - `@media (prefers-reduced-motion: reduce)` skips the rope jitter, the monster breath pulse, and the walk-past animation. The state transitions still happen; they just cut instead of animate.
+    - **Keyboard controls** during the struggle: `Space` = pull (one impulse per press, same as one tap), `Enter` = drop the rope (once the button is focused). The button is focusable once visible and receives keyboard focus automatically at that moment.
 
-11. **Raccoon visual continuity: mismatched Crocs.** The canonical raccoon (per `~/.claude/skills/gen-image/raccoon-style.txt`) wears mismatched Crocs — one BLUE on the left foot, one YELLOW on the right. This is a signature visual. The brainstorm Gemini renders all show it correctly. However, the in-game raccoon is procedurally drawn in Canvas 2D via `src/characters/Character.ts` and `drawRaccoon.ts`, which draws a simplified pill-shaped character — it's unclear whether the current `drawRaccoon` renders Crocs at all, let alone mismatched ones. **Flag for implementation:** before building this lesson, verify `drawRaccoon` draws feet/shoes, and if not, add minimal Croc rendering so the in-game raccoon is visually continuous with the brainstorm previews. If it already draws them, verify they're mismatched (left blue / right yellow). Either way, this is a small drawRaccoon extension that should be done as a dependency of this lesson (or as a prerequisite PR).
+11. ~~**Raccoon visual continuity: mismatched Crocs.**~~ **LOCKED (rev 3):** this is a **prerequisite PR**, not inline with the lesson. Before the Drop the Rope lesson PR is opened, land a small PR that updates `drawRaccoon` to draw mismatched Crocs — left foot `#3B82F6` blue, right foot `#FDE047` yellow — so the in-game raccoon matches the canonical style in `~/.claude/skills/gen-image/raccoon-style.txt` and the brainstorm Gemini renders. Keeping this in its own PR keeps the lesson PR focused on lesson-specific code.
 
 ---
 
