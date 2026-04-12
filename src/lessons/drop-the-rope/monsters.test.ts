@@ -28,10 +28,13 @@ test("ROUND_CONFIGS: has 5 entries", () => {
   assert.equal(ROUND_CONFIGS.length, 5);
 });
 
-test("ROUND_CONFIGS: round 1 drop timer is 12 seconds (tuned from 18s by playtest)", () => {
-  // Q3 post-playtest tuning (2026-04-12): original 18s felt like surrender,
-  // not relief. Shortened to 12s so the button lands as the stuck feeling peaks.
-  assert.equal(getRoundConfig(1).dropTimerMs, 12000);
+test("ROUND_CONFIGS: round 1 drop timer is 10 seconds (tuned from 18s via 2 playtest passes)", () => {
+  // Q3 post-playtest tuning (2026-04-12):
+  //   pass 1 (desktop): 18s felt like surrender, shortened to 12s
+  //   pass 2 (mobile):  12s still had 6s of post-desaturation grinding on
+  //                     touch-tap cadence. 10s lands the button as the
+  //                     stuck feeling peaks without dead air.
+  assert.equal(getRoundConfig(1).dropTimerMs, 10000);
 });
 
 test("ROUND_CONFIGS: round 5 drop timer is 0.5 seconds", () => {

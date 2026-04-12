@@ -39,8 +39,8 @@ export const MONSTERS: readonly Monster[] = [
 ];
 
 export const ROUND_CONFIGS: readonly RoundConfig[] = [
-  { monster: "anxiety",        dropTimerMs: 12000, tauntHoldMs: 2000, tauntFadeMs: 1000, monsterWalkInMs: 1500, captionText: "coffee" },
-  { monster: "self-criticism", dropTimerMs: 10000, tauntHoldMs:  800, tauntFadeMs:  700, monsterWalkInMs: 1500, captionText: "a swing" },
+  { monster: "anxiety",        dropTimerMs: 10000, tauntHoldMs: 2000, tauntFadeMs: 1000, monsterWalkInMs: 1500, captionText: "coffee" },
+  { monster: "self-criticism", dropTimerMs:  8000, tauntHoldMs:  800, tauntFadeMs:  700, monsterWalkInMs: 1500, captionText: "a swing" },
   { monster: "shame",          dropTimerMs:  6000, tauntHoldMs:  800, tauntFadeMs:  700, monsterWalkInMs: 1500, captionText: "a friend" },
   { monster: "doubt",          dropTimerMs:  3000, tauntHoldMs:  800, tauntFadeMs:  700, monsterWalkInMs: 1500, captionText: "a page" },
   { monster: "anger",          dropTimerMs:   500, tauntHoldMs:    0, tauntFadeMs:  300, monsterWalkInMs:  500, captionText: "her"      },

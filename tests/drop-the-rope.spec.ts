@@ -49,15 +49,15 @@ test.describe("Drop the Rope lesson", () => {
   });
 
   test("drop button appears and advances the round into the valued scene", async ({ page }) => {
-    // Round 1 uses a 12s drop timer (tuned from 18s by playtest agent) plus a
-    // ~1.2s fade-in. Per-test budget is bumped so the test has headroom.
+    // Round 1 uses a 10s drop timer (tuned from 18 → 12 → 10 across two
+    // playtest passes — desktop then mobile) plus a ~1.2s fade-in.
     test.setTimeout(60000);
     await skipIntro(page);
     const dropBtn = page.locator(".dtr-drop-button");
     // Initially hidden
     await expect(dropBtn).toBeHidden();
-    // Eventually visible within 18s (12s timer + fade + fudge)
-    await expect(dropBtn).toBeVisible({ timeout: 18000 });
+    // Eventually visible within 15s (10s timer + fade + fudge)
+    await expect(dropBtn).toBeVisible({ timeout: 15000 });
     await dropBtn.click();
     // After drop + walk-past + crossfade + walk-to-spot + 2s caption wait, caption should appear.
     await expect(page.locator(".dtr-caption-visible")).toBeVisible({ timeout: 12000 });

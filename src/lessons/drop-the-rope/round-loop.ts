@@ -15,6 +15,33 @@ import {
   drawValuedDog,
 } from "./valued-scenes.ts";
 
+// ========= Layout =========
+
+/**
+ * Position + size of the monster silhouette in the current canvas. Scales down
+ * on narrow/short canvases so tall silhouettes (Anxiety's antenna, Shame's
+ * shoulders) don't clip at the top or run off the right edge on mobile.
+ *
+ * The raccoon's hand / rope-origin sits near `w * 0.3`. Monster cx stays at
+ * `w * 0.7` on mobile so there's headroom for the silhouette's right side.
+ */
+export function getMonsterLayout(w: number, h: number): {
+  cx: number;
+  cy: number;
+  height: number;
+} {
+  // Height is bounded by both canvas width (avoid monster wider than frame)
+  // and canvas height (leave room for ears/antenna above and shadow below).
+  // The 180 / 0.35 / 0.55 tuning keeps the silhouette identical at desktop
+  // sizes (1200×720) and shrinks smoothly as the canvas narrows.
+  const height = Math.min(180, w * 0.35, h * 0.55);
+  // Monster cx: 0.75 on desktop, 0.7 on mobile — narrower viewports lose the
+  // right-margin headroom because the silhouette has some body-width.
+  const cx = w * (w <= 500 ? 0.7 : 0.75);
+  const cy = h * 0.55;
+  return { cx, cy, height };
+}
+
 // ========= Greying =========
 
 const GREY_AT_COMPLETE = 0.15;
@@ -204,18 +231,17 @@ export async function runRound(
       ctx.clearRect(0, 0, w, h);
       drawWarmDawn(ctx, w, h, saturation);
 
-      const monsterX = w * 0.75;
-      const monsterY = h * 0.55;
+      const layout = getMonsterLayout(w, h);
       drawMonster(ctx, config.monster, {
-        cx: monsterX,
-        cy: monsterY,
-        height: 180,
+        cx: layout.cx,
+        cy: layout.cy,
+        height: layout.height,
         breathPhase: reduced ? 0 : (elapsed / 500) % 1, // Q10: respect reduced motion
         pullLean: tension,
       });
 
       const ropeFrom: Point = { x: w * 0.3 + 20, y: h * 0.6 };
-      const ropeTo: Point = { x: monsterX - 30, y: monsterY + 10 };
+      const ropeTo: Point = { x: layout.cx - layout.height * 0.17, y: layout.cy + 10 };
       drawRope(ctx, ropeFrom, ropeTo, tension, "taut", now < flashUntil);
 
       // Q9: Round 1 only, at t≈4000ms, "max tension" flash + snap-back
@@ -282,17 +308,19 @@ async function animateArrival(
   startMs: number,
 ): Promise<void> {
   const { ctx } = deps;
+  const layout = getMonsterLayout(w, h);
   return new Promise((resolve) => {
     const loop = () => {
       const elapsed = performance.now() - startMs;
       const t = Math.min(1, elapsed / config.monsterWalkInMs);
       ctx.clearRect(0, 0, w, h);
       drawWarmDawn(ctx, w, h, 1);
-      const monsterX = w * 1.1 - t * (w * 0.35); // walks in from right edge
+      // walks in from right edge to its final cx
+      const monsterX = w * 1.1 - t * (w * 1.1 - layout.cx);
       drawMonster(ctx, config.monster, {
         cx: monsterX,
-        cy: h * 0.55,
-        height: 180,
+        cy: layout.cy,
+        height: layout.height,
         breathPhase: (elapsed / 500) % 1,
         pullLean: 0,
       });
@@ -300,7 +328,7 @@ async function animateArrival(
       drawRope(
         ctx,
         { x: w * 0.3 + 20, y: h * 0.6 },
-        { x: monsterX - 30, y: h * 0.55 + 10 },
+        { x: monsterX - layout.height * 0.17, y: layout.cy + 10 },
         0,
         "taut",
         false,
@@ -323,6 +351,7 @@ async function animateDrop(
 ): Promise<void> {
   // 3-keyframe drop: taut -> sagging -> flat over ~0.8s
   const { ctx } = deps;
+  const layout = getMonsterLayout(w, h);
   const frames: Array<[RopeState, number]> = [
     ["taut", 0],
     ["sagging", 250],
@@ -339,16 +368,16 @@ async function animateDrop(
       ctx.clearRect(0, 0, w, h);
       drawWarmDawn(ctx, w, h, 0.15);
       drawMonster(ctx, config.monster, {
-        cx: w * 0.75,
-        cy: h * 0.55,
-        height: 180,
+        cx: layout.cx,
+        cy: layout.cy,
+        height: layout.height,
         breathPhase: (elapsed / 500) % 1,
         pullLean: 0.3, // still yanking at empty air
       });
       drawRope(
         ctx,
         { x: w * 0.3 + 20, y: h * 0.6 },
-        { x: w * 0.75 - 30, y: h * 0.55 + 10 },
+        { x: layout.cx - layout.height * 0.17, y: layout.cy + 10 },
         0,
         state,
         false,
@@ -377,14 +406,15 @@ async function fadeDesaturationBack(
   duration: number,
 ): Promise<void> {
   const { ctx } = deps;
+  const layout = getMonsterLayout(w, h);
   if (duration === 0) {
     // prefers-reduced-motion: snap straight to full color, draw once
     ctx.clearRect(0, 0, w, h);
     drawWarmDawn(ctx, w, h, 1);
     drawMonster(ctx, config.monster, {
-      cx: w * 0.75,
-      cy: h * 0.55,
-      height: 180,
+      cx: layout.cx,
+      cy: layout.cy,
+      height: layout.height,
       breathPhase: 0,
       pullLean: 0.2,
     });
@@ -399,9 +429,9 @@ async function fadeDesaturationBack(
       ctx.clearRect(0, 0, w, h);
       drawWarmDawn(ctx, w, h, sat);
       drawMonster(ctx, config.monster, {
-        cx: w * 0.75,
-        cy: h * 0.55,
-        height: 180,
+        cx: layout.cx,
+        cy: layout.cy,
+        height: layout.height,
         breathPhase: (elapsed / 500) % 1,
         pullLean: 0.2,
       });

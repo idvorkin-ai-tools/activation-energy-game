@@ -66,7 +66,12 @@ export async function runGallery(
       <a href="/">Explorable Explanations</a>
     </div>
   `;
-  (canvas.parentElement ?? document.body).appendChild(endUI);
+  // Append to #game-container (the full-height viewport box), NOT to the
+  // canvas's stage wrapper. On mobile the stage is only ~384px tall and the
+  // flex-end text lands across the raccoon. The container is `100vh - 48px`
+  // so the text sits safely below the canvas.
+  const overlayParent = document.getElementById("game-container") ?? document.body;
+  overlayParent.appendChild(endUI);
 
   const showEl = (selector: string): void => {
     const el = endUI.querySelector<HTMLElement>(selector);
