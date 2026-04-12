@@ -28,8 +28,10 @@ test("ROUND_CONFIGS: has 5 entries", () => {
   assert.equal(ROUND_CONFIGS.length, 5);
 });
 
-test("ROUND_CONFIGS: round 1 drop timer is 18 seconds", () => {
-  assert.equal(getRoundConfig(1).dropTimerMs, 18000);
+test("ROUND_CONFIGS: round 1 drop timer is 12 seconds (tuned from 18s by playtest)", () => {
+  // Q3 post-playtest tuning (2026-04-12): original 18s felt like surrender,
+  // not relief. Shortened to 12s so the button lands as the stuck feeling peaks.
+  assert.equal(getRoundConfig(1).dropTimerMs, 12000);
 });
 
 test("ROUND_CONFIGS: round 5 drop timer is 0.5 seconds", () => {

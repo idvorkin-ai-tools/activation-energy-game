@@ -12,7 +12,7 @@ Visual references from the brainstorm session are in `.superpowers/brainstorm/22
 
 **Revision 3 — 2026-04-11 (Q2-Q11 walkthrough):** Remaining open questions resolved in a text-based brainstorm pass. Summary:
 - **Q2 taunts** → graduated duration (R1: 3s, R2-R4: 1.5s, R5: interrupted). Taunt duration shrinks alongside drop-timer — second embodied learning curve stacked on the first.
-- **Q3 round-1 drop timer** → ship 18s as placeholder; gated by a playtest-agent run on round 1 before PR. Criterion: "does the button appearing feel like relief, or like surrender?"
+- **Q3 round-1 drop timer** → **resolved 2026-04-12 to 12s** via playtest-agent run. Original plan shipped 18s as placeholder; the critic ruled *surrender*, not relief — by t=6–8s the raccoon was locked in the `desperate` expression and the frame didn't meaningfully change for another 10 seconds. Emotional arc crystallizes around t=10–12s; shortened to 12s so the button lands as the "stuck" feeling peaks.
 - **Q4 round-5 drop timer** → 0.5s button timing PLUS compressed monster walk-in (0.5s instead of the usual 1.5s). Entire round 5 feels like one gesture.
 - **Q5 captions** → kept as spec (coffee / a swing / a friend / a page / her); timing shifted to 2s after arrival so the word confirms the feeling rather than announcing it.
 - **Q6 URL** → `drop-the-rope` (player verb).
@@ -79,7 +79,7 @@ One round, start to finish:
 2. **Struggle (1.5s → drop-button-appears).** The rope goes taut. The player **taps anywhere on the screen** to pull. Each tap advances a "pull progress" value by a small amount, which decays toward zero at ~40% per second. The rope's midpoint is rendered as a line that bows slightly toward whichever side is winning (player left or monster right). Monster pulls automatically — its pull strength scales up over time so the player feels the rope drifting inexorably rightward even when tapping frantically. **You cannot win.** The player doesn't know that yet.
 3. **Greying (starts at t=2s, complete by t=6s).** The warm dawn world is fully saturated at t=0. As the struggle continues, a desaturation overlay fades in on top, draining warmth out of the amber sky and warm brown ground until by t=6s the world is near-greyscale. This is the visual language of fusion: the more you fight, the less you can see what you were fighting *for*. Note: because the base world is warm (not grey), the desaturation is a *subtractive* transformation, not a baseline — the player should feel color being pulled out of the frame as the struggle drags on, and feel it pour back in during the walk-past.
 4. **Exhaustion meter rises (t=0 → drop-button-appears).** A thin horizontal bar at the top of the screen fills from left to right. It is **not** a willpower bar — it's not labeled, it has no number, and it doesn't behave like the `WillpowerBar` in the energy lesson. It's just a silent line that gets darker and longer. No explicit "you're tired" text. The rising line is the feeling of fatigue, drawn.
-5. **Drop button appears.** The button (`Drop the rope`) fades in at the bottom of the screen, centered, when the round's drop-timer elapses. In round 1, this is **18 seconds** — long enough that the player goes through denial → frustration → recognition. In later rounds it's shorter (see §7). The button is small, low-contrast at first, and eases into full opacity over 1.2s. **The player can ignore it and keep tapping.** The game waits. This matters: the choice must be a choice.
+5. **Drop button appears.** The button (`Drop the rope`) fades in at the bottom of the screen, centered, when the round's drop-timer elapses. In round 1, this is **12 seconds** (tuned from the original 18s placeholder after playtest; see Q3) — long enough that the player goes through denial → frustration → recognition. In later rounds it's shorter (see §7). The button is small, low-contrast at first, and eases into full opacity over 1.2s. **The player can ignore it and keep tapping.** The game waits. This matters: the choice must be a choice.
 6. **The drop (~2s).** Player taps the button. Rope goes slack — the line drops to the ground with a physics-less gravity animation (three keyframes is fine: taut → sagging → flat on ground). Monster stumbles half a step backward from the sudden slack, recovers, continues pulling and roaring **at empty air on its side of the rope**. The raccoon's paws uncurl. A half-second beat where nothing happens. Then:
 7. **Walk past the monster (~2.5s).** The raccoon's expression shifts (see §4). `walkTo()` carries it from center-left toward a new point at the right side of the screen, **past the monster**. Crucially, the raccoon passes visibly *under/past* the monster — they exist in the same frame. The monster is still there. The raccoon does not look at it. The desaturation overlay lifts as the raccoon walks, and the warm dawn world pours back in at full saturation. Once the raccoon reaches the far side of the frame, a crossfade transitions the background from the warm dawn plain to the specific valued scene for this round.
 8. **Into the valued scene (~3–4s).** The raccoon walks into the scene (coffee shop, gym, living room — see §5), arrives at a specific spot, and the scene "comes alive" briefly. Tiny animations — a friend waves, a kettlebell wobbles, a dog lifts its head. The raccoon's expression settles. A small caption may fade in (see §7 on whether we keep them).
@@ -188,7 +188,7 @@ One-word captions, lowercase. These are tonal — direct, undramatic, trusting t
 
 | Round | Timer | Rationale |
 |---|---|---|
-| 1 | **18s** | Long enough for denial → frustration → "wait why can't I win" → button appears. Not long enough to feel punishing. |
+| 1 | **12s** (was 18s; tuned 2026-04-12 by playtest agent) | Long enough for denial → frustration → "wait why can't I win" → button appears. 18s was tested but felt like surrender, not relief — the raccoon plateaued on `desperate` for 10+ seconds of dead air. 12s lands the button as the stuck feeling peaks. |
 | 2 | **10s** | Player has seen the move once. Half the time. |
 | 3 | **6s** | Muscle memory kicks in — this is the round where most players will start looking for the button on their own, before it appears. |
 | 4 | **3s** | The button appears almost immediately on arrival. |
@@ -197,7 +197,7 @@ One-word captions, lowercase. These are tonal — direct, undramatic, trusting t
 **Total playtime target: 4–5 minutes.** Breakdown:
 
 - Opening (before round 1): ~20s
-- Round 1: ~18s struggle + ~4s walk-past + ~4s valued scene + ~2s transition = ~28s
+- Round 1: ~12s struggle + ~4s walk-past + ~4s valued scene + ~2s transition = ~22s
 - Round 2: ~10 + 4 + 4 + 2 = ~20s
 - Round 3: ~6 + 4 + 4 + 2 = ~16s
 - Round 4: ~3 + 4 + 4 + 2 = ~13s
@@ -324,7 +324,7 @@ src/lessons/drop-the-rope/
 
 2. ~~**Are the taunts shown at all, or just implied?**~~ **LOCKED (rev 3):** shown, with graduated duration per round (see §2 Taunts table). Round 1 gets 3s to establish the convention; rounds 2-4 get 1.5s; round 5 begins fading in but is interrupted by the player's reflexive drop. The shrinking taunt duration is a second embodied learning curve stacked on the drop-timer curve.
 
-3. ~~**Should the drop-timer in round 1 be 18s?**~~ **LOCKED (rev 3):** ship 18s as placeholder. **Gated by a playtest-agent run on round 1 before the lesson's PR can merge.** The playtest prompt must include this specific criterion: *"At t=18s when the drop button first appears, what does the raccoon's face mean? Relief, surrender, or confusion? Which of those did the player just feel?"* Relief is the signal we got the number right. Adjust up/down based on the playtest critic report.
+3. ~~**Should the drop-timer in round 1 be 18s?**~~ **LOCKED (rev 3 → tuned 2026-04-12):** the gate required a playtest-agent run, and the critic ruled **surrender** for 18s. By t=6–8s the raccoon was locked in the `desperate` expression; t=8–16s was visually static dead air, and by the time the button appeared at t=18s the feeling was "finally, something changed on screen" — not earned catharsis. **New value: 12s**, which lands the button as the emotional arc (neutral → stressed → desperate → stuck) peaks. Test assertion updated to wait 25s for the button fade-in.
 
 4. ~~**Does round 5 actually let the player drop in 0.5s?**~~ **LOCKED (rev 3):** yes, 0.5s — AND the monster's walk-in animation for round 5 is also shortened from the usual 1.5s to 0.5s. The entire round 5 is visually accelerated, not just the button timing. Feels like "monster-button-drop" as a single gesture. See §7 table.
 
