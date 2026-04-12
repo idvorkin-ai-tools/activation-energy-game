@@ -20,6 +20,7 @@ import { initA11y } from "./a11y.ts";
  */
 export class DropTheRopeGame {
   private container: HTMLElement;
+  private stage!: HTMLDivElement;
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
   private character!: Character;
@@ -37,8 +38,13 @@ export class DropTheRopeGame {
     initA11y();
     this.setupDOM();
 
+    // Character and game UI are hidden during the intro — the intro owns the whole container
+    this.setStageVisible(false);
+
     await runIntro(this.container);
     if (this.stopped) return;
+
+    this.setStageVisible(true);
 
     for (let r = 1; r <= 5; r++) {
       if (this.stopped) return;
@@ -51,6 +57,10 @@ export class DropTheRopeGame {
     if (this.stopped) return;
 
     await runGallery(this.deps(), () => this.restart());
+  }
+
+  private setStageVisible(visible: boolean): void {
+    this.stage.style.visibility = visible ? "visible" : "hidden";
   }
 
   restart(): void {
@@ -86,31 +96,48 @@ export class DropTheRopeGame {
     this.container.innerHTML = "";
     this.container.style.position = "relative";
 
-    // Exhaustion bar rides at the very top of the container
+    // Figure out canvas CSS dimensions from the container width (flex-centered)
+    const rect = this.container.getBoundingClientRect();
+    const containerW = Math.max(1, rect.width || 1200);
+    const containerH = Math.max(1, rect.height || 900);
+    const aspect = canvasAspect(containerW);
+    // Fit inside both container width AND height (leave a tiny margin)
+    let cssW = containerW;
+    let cssH = cssW * aspect;
+    if (cssH > containerH * 0.96) {
+      cssH = containerH * 0.96;
+      cssW = cssH / aspect;
+    }
+    const dpr = window.devicePixelRatio || 1;
+
+    // Stage wrapper: a positioned box sized exactly to the canvas. All overlays
+    // (character, drop button, taunt, caption, exhaustion bar) are positioned
+    // relative to this wrapper so their coords match the canvas coordinate space.
+    this.stage = document.createElement("div");
+    this.stage.className = "dtr-stage";
+    this.stage.style.position = "relative";
+    this.stage.style.width = `${cssW}px`;
+    this.stage.style.height = `${cssH}px`;
+    this.container.appendChild(this.stage);
+
+    // Exhaustion bar rides at the very top of the stage
     this.exhaustionBar = new ExhaustionBar();
     this.exhaustionBar.el.style.position = "absolute";
     this.exhaustionBar.el.style.top = "0";
     this.exhaustionBar.el.style.left = "0";
     this.exhaustionBar.el.style.zIndex = "5";
-    this.container.appendChild(this.exhaustionBar.el);
-
-    // Canvas sized to the container width with the shared aspect helper
-    const rect = this.container.getBoundingClientRect();
-    const containerW = rect.width || 1200;
-    const aspect = canvasAspect(containerW);
-    const cssH = containerW * aspect;
-    const dpr = window.devicePixelRatio || 1;
+    this.stage.appendChild(this.exhaustionBar.el);
 
     this.canvas = document.createElement("canvas");
     this.canvas.style.display = "block";
-    this.canvas.style.width = `${containerW}px`;
+    this.canvas.style.width = `${cssW}px`;
     this.canvas.style.height = `${cssH}px`;
     this.canvas.style.position = "absolute";
     this.canvas.style.left = "0";
     this.canvas.style.top = "0";
-    this.canvas.width = containerW * dpr;
+    this.canvas.width = cssW * dpr;
     this.canvas.height = cssH * dpr;
-    this.container.appendChild(this.canvas);
+    this.stage.appendChild(this.canvas);
 
     this.ctx = this.canvas.getContext("2d")!;
     this.ctx.scale(dpr, dpr);
@@ -118,16 +145,15 @@ export class DropTheRopeGame {
     // Character DOM canvas sits above the main canvas
     this.character = new Character();
     this.character.el.style.zIndex = "2";
-    this.container.appendChild(this.character.el);
-    this.character.setPosition(containerW * 0.3, cssH * 0.6);
+    this.stage.appendChild(this.character.el);
+    this.character.setPosition(cssW * 0.3, cssH * 0.6);
 
-    // Drop button + taunt bubble live in the container so they position over the canvas
     this.dropButton = new DropButton();
     this.dropButton.el.style.zIndex = "4";
-    this.container.appendChild(this.dropButton.el);
+    this.stage.appendChild(this.dropButton.el);
 
     this.tauntBubble = new TauntBubble();
     this.tauntBubble.el.style.zIndex = "3";
-    this.container.appendChild(this.tauntBubble.el);
+    this.stage.appendChild(this.tauntBubble.el);
   }
 }
