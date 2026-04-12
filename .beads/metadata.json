@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "activation_energy_game",
+  "project_id": "d852abf4-f074-4b2b-b047-835962c2475e"
+}

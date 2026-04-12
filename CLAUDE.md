@@ -135,6 +135,60 @@ Every lesson and playground page MUST have:
 - **Multi-step intro test helper** — Lessons with chained intro screens need a Playwright test helper that walks through all begin buttons (e.g., `tapToArcade(page)` in `tests/choice-point.spec.ts`), since the same button selector may appear on intro, explanation, etc.
 - **Overlay with persistent character** — To keep the raccoon visible over a full-screen overlay (like a reflection/pause beat), give the character's layer a higher `z-index` than the overlay and use `Character.walkTo` to reposition during the pause. Don't move the canvas into the overlay DOM — it fights the Character class's canvas ownership.
 - **Debug scene buttons** — add `?debug` to any lesson URL to show scene jump buttons (morning-choice only currently). Use for visual inspection during development.
-- **Playtest agent** — to get critical feedback on visuals and gameplay, dispatch a general-purpose subagent that uses Playwright to play through the game, screenshots every beat, views each with vision, and writes a structured critic report. See the playtest agent prompt used in this session for the template.
+- **Playtest agent** — dispatch a general-purpose subagent that uses Playwright to play through the game, screenshots every beat, views each with vision, and writes a structured critic report. **MUST run at BOTH desktop (1200×900) AND iPhone 17 Pro (427×933 @3x, `hasTouch: true`, `isMobile: true`) viewports**, and on the mobile run MUST use `page.tap()` / `page.touchscreen.tap()` rather than `page.click()` — game code listens on `touchstart` and `click` does not synthesize touch events even on touch contexts. Desktop-only or click-only playtests miss touch-target, canvas-clipping, and tap-feedback issues.
+- **Overlay parenting — `#game-container` vs canvas stage** — per-canvas overlays (captions, floating numbers) attach to `canvas.parentElement`/the stage wrapper because they want canvas-relative coords. **Full-viewport overlays** (gallery endings, modal-style pauses, anything that needs the tall `100vh - 48px` box so text lands below/above the canvas) must attach to `document.getElementById("game-container")` — the stage wrapper is sized to the canvas and is only ~384px tall on mobile, so `flex-end` content lands on the canvas.
+- **Canvas draw coords go in a layout helper, not inline** — when a scene re-draws the same element across multiple frames (arrival/struggle/drop/fade), extract `getXLayout(w, h) → {cx, cy, height}` and call it from each site. The helper **must** read `h` as well as `w`: mobile canvases are both narrower and *shorter* than desktop, so positions that scale only on `w` clip vertically. See `getMonsterLayout()` in `src/lessons/drop-the-rope/round-loop.ts` for the pattern.
+- **`.ts` import specifiers in drop-the-rope** — `src/lessons/drop-the-rope/*.ts` files use explicit `.ts` suffixes on value imports (`./monsters.ts`, not `./monsters`) to satisfy Node's `--experimental-strip-types` loader for unit tests. `tsconfig.json` has `allowImportingTsExtensions: true` to allow this. Don't "fix" the suffixes; they're required for `node --test` to resolve.
+- **LSP lies after TS config changes** — the editor's TypeScript server caches aggressively and reports phantom errors (especially `Cannot find module './foo.ts'` and `All imports in import declaration are unused`) after `tsconfig.json` edits or `.ts`-suffix imports. Trust `npx tsc --noEmit` from the CLI, not the editor squigglies.
+- **Playwright default timeout is 15s** (see `playwright.config.ts`). Tests that wait on in-game timers longer than that need `test.setTimeout(60000)` at the top of the test body. Drop-the-rope round 1 is a 12s wait + ~1.2s button fade-in, so E2E assertions on the drop button should use `{ timeout: 18000 }` or larger.
+- **Playwright one-off scripts must live inside the project dir**, not `/tmp/*.mjs` — Node's package resolution needs to reach `node_modules/@playwright/test` via the CWD's parent chain. Write `./tmp-*.mjs` at the repo root and remove when done.
 - **Game vocabulary** — **beats** are story moments, **stay path** is the inertia spiral, **productive path** is getting up and going. Beats have **choices** (stay/go buttons), **productiveChoices** (go-path decisions), **continue** buttons (player-paced advance), or **auto-advance** (only easyChair — loss of agency).
 - **Deployed to Surge.sh** — staging at `activation-energy-game-stage.surge.sh`, production at `activation-energy-game.surge.sh`
+
+
+<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
+## Beads Issue Tracker
+
+This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
+
+### Quick Reference
+
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --claim  # Claim work
+bd close <id>         # Complete work
+```
+
+### Rules
+
+- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
+- Run `bd prime` for detailed command reference and session close protocol
+- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
+
+## Session Completion
+
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+
+**MANDATORY WORKFLOW:**
+
+1. **File issues for remaining work** - Create issues for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - Close finished work, update in-progress items
+4. **PUSH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git pull --rebase
+   bd dolt push
+   git push
+   git status  # MUST show "up to date with origin"
+   ```
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
+
+**CRITICAL RULES:**
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds
+<!-- END BEADS INTEGRATION -->
