@@ -34,3 +34,14 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
     b: parseInt(h.substring(4, 6), 16),
   };
 }
+
+/**
+ * Aspect ratio for scene canvases: taller on narrow screens so scenes
+ * aren't squished, wider on desktop so horizontal compositions (e.g. the
+ * drop-the-rope tug-of-war) read as horizontal tension rather than sag.
+ */
+export function canvasAspect(width: number): number {
+  if (width <= 500) return 0.9;   // mobile — nearly square
+  if (width <= 700) return 0.75;  // tablet
+  return 0.6;                     // desktop
+}

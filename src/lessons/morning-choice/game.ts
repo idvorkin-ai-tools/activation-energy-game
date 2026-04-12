@@ -1,6 +1,7 @@
 import type { Beat, GameState, SceneUpdate } from "./types";
 import { BEATS, PRODUCTIVE_PATH_BEATS, PRODUCTIVE_PATH_ENERGY_GAINS, PRODUCTIVE_PATH_TIME_OFFSETS, STAY_BEAT_INERTIA } from "./beats";
-import { createRoomCanvas, renderRoom, stopRoomAnimation, canvasAspect } from "./room";
+import { createRoomCanvas, renderRoom, stopRoomAnimation } from "./room";
+import { canvasAspect } from "../../scenes/utils";
 import { startDragInteraction } from "./drag";
 import { EnergyBar } from "./energy-bar";
 import { drawRaccoonComposite } from "../../scenes/raccoonComposite";

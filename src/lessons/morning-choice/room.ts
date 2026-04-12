@@ -1,7 +1,7 @@
 import type { ExpressionName } from "../../characters/expressions";
 import type { SceneUpdate } from "./types";
 import { parseTime } from "./time-utils";
-import { roundRect, lerpColor } from "../../scenes/utils";
+import { roundRect, lerpColor, canvasAspect } from "../../scenes/utils";
 import { drawGymScene } from "../../scenes/gym";
 import { drawCoffeeShopScene } from "../../scenes/coffeeShop";
 import { drawRaccoonComposite } from "../../scenes/raccoonComposite";
@@ -33,13 +33,6 @@ export function stopRoomAnimation(): void {
     cancelAnimationFrame(alarmAnimId);
     alarmAnimId = 0;
   }
-}
-
-/** Aspect ratio: taller on narrow screens so scenes aren't squished */
-export function canvasAspect(width: number): number {
-  if (width <= 500) return 0.9;   // mobile — nearly square
-  if (width <= 700) return 0.75;  // tablet
-  return 0.6;                     // desktop
 }
 
 function setupCanvas(canvas: HTMLCanvasElement, dpr: number): void {
